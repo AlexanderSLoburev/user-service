@@ -3,6 +3,7 @@
 2. `cp .env.example .env` (при занятом порте 5432 поменяйте POSTGRES_PORT).
 3. `docker compose up -d`.
 4. Дождитесь статуса healthy: `docker compose ps`.
+5. `cp src\main\resources\db.properties.example src\main\resources\db.properties`, укажите свой логин и пароль.
 
 ## Шпаргалка по командам
 
