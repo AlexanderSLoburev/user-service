@@ -21,7 +21,7 @@ class UserTest {
   }
 
   @Test
-  void unsavedUsersAreNeverEqual() {
+  void when_userIsUnsaved_then_itIsEqualToItselfOnly() {
     User first = new User("Ivan", "ivan@example.com", 30);
     User second = new User("Ivan", "ivan@example.com", 30);
 
@@ -33,9 +33,10 @@ class UserTest {
   }
 
   @Test
-  void savedUsersAreEqualByIdOnly() throws Exception {
+  void when_savedUsersHaveSameId_then_theyAreEqualIgnoringOtherFields()
+      throws Exception {
     User first = new User("Ivan", "ivan@example.com", 30);
-    User second = new User("Другое имя", "other@example.com", 99);
+    User second = new User("Other name", "other@example.com", 99);
     setField(first, "id", 42L);
     setField(second, "id", 42L);
 
@@ -46,7 +47,7 @@ class UserTest {
   }
 
   @Test
-  void hashCodeDoesNotChangeWhenIdAssigned() throws Exception {
+  void when_idIsAssigned_then_hashCodeStaysTheSame() throws Exception {
     User user = new User("Ivan", "ivan@example.com", 30);
     int before = user.hashCode();
     setField(user, "id", 42L);
@@ -54,7 +55,7 @@ class UserTest {
   }
 
   @Test
-  void prePersistSetsCreatedAtOnlyOnce() throws Exception {
+  void when_prePersistIsCalled_then_createdAtIsSetOnlyOnce() throws Exception {
     User user = new User("Ivan", "ivan@example.com", 30);
     assertNull(user.getCreatedAt());
 
@@ -68,7 +69,7 @@ class UserTest {
   }
 
   @Test
-  void toStringContainsMainFields() {
+  void when_toStringIsCalled_then_itContainsNameAndEmail() {
     User user = new User("Ivan", "ivan@example.com", 30);
     String text = user.toString();
     assertTrue(text.contains("Ivan") && text.contains("ivan@example.com"));
