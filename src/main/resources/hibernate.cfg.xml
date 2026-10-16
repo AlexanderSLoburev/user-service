@@ -8,9 +8,6 @@
     <!-- ========== Connection ========== -->
     <property name="hibernate.connection.driver_class">org.postgresql.Driver</property>
 
-    <!-- ========== Dialect ========== -->
-    <property name="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</property>
-
     <!-- ========== Schema ========== -->
     <!-- The schema is created by 01-schema.sql; Hibernate only verifies it -->
     <property name="hibernate.hbm2ddl.auto">validate</property>
