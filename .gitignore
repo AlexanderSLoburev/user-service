@@ -2,3 +2,5 @@ target/
 *.log
 .env
 src/main/resources/db.properties
+
+.idea/
