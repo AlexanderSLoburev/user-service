@@ -2,6 +2,7 @@ package com.example.userservice;
 
 import com.example.userservice.console.InputValidator;
 import com.example.userservice.entity.User;
+
 import java.util.Scanner;
 
 public class App {
@@ -49,23 +50,61 @@ public class App {
         System.out.print("Choice: ");
     }
 
+    private static String readName() {
+        while (true) {
+            System.out.print("Name: ");
+            try {
+                return InputValidator.validateName(SCANNER.nextLine());
+            } catch (IllegalArgumentException e) {
+                System.out.println("ERROR " + e.getMessage());
+            }
+        }
+    }
+
+    private static String readEmail() {
+        while (true) {
+            System.out.print("Email: ");
+            try {
+                return InputValidator.validateEmail(SCANNER.nextLine());
+            } catch (IllegalArgumentException e) {
+                System.out.println("ERROR " + e.getMessage());
+            }
+        }
+    }
+
+    private static Integer readAge() {
+        while (true) {
+            System.out.print("Age (press Enter to skip): ");
+            try {
+                return InputValidator.validateAge(SCANNER.nextLine());
+            } catch (IllegalArgumentException e) {
+                System.out.println("ERROR " + e.getMessage());
+            }
+        }
+    }
+
+    private static Long readId() {
+        while (true) {
+            System.out.print("Id: ");
+            try {
+                return InputValidator.validateId(SCANNER.nextLine());
+            } catch (IllegalArgumentException e) {
+                System.out.println("ERROR " + e.getMessage());
+            }
+        }
+    }
+
     private static void createUser() {
-        System.out.print("Name: ");
-        String name = InputValidator.validateName(SCANNER.nextLine());
-
-        System.out.print("Email: ");
-        String email = InputValidator.validateEmail(SCANNER.nextLine());
-
-        System.out.print("Age (press Enter to skip): ");
-        Integer age = InputValidator.validateAge(SCANNER.nextLine());
+        String name = readName();
+        String email = readEmail();
+        Integer age = readAge();
 
         User user = new User(name, email, age);
         System.out.println("User created: " + user);
     }
 
     private static void findUserById() {
-        System.out.print("Id: ");
-        Long id = InputValidator.validateId(SCANNER.nextLine());
+        Long id = readId();
         System.out.println("Looking for user with id=" + id);
     }
 
@@ -74,14 +113,12 @@ public class App {
     }
 
     private static void updateUser() {
-        System.out.print("Id: ");
-        Long id = InputValidator.validateId(SCANNER.nextLine());
+        Long id = readId();
         System.out.println("Updating user with id=" + id);
     }
 
     private static void deleteUser() {
-        System.out.print("Id: ");
-        Long id = InputValidator.validateId(SCANNER.nextLine());
+        Long id = readId();
         System.out.println("Deleting user with id=" + id);
     }
 }

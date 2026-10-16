@@ -1,12 +1,12 @@
-package com.example.userservice.entity;
+package com.example.userservice.console;
 
-import com.example.userservice.console.InputValidator;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 public class InputValidatorTest {
+
     @Test
     void nameIsTrimmed() {
         assertEquals("Ivan", InputValidator.validateName("  Ivan  "));
