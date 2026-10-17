@@ -2,7 +2,10 @@ package com.example.userservice;
 
 import com.example.userservice.console.InputValidator;
 import com.example.userservice.entity.User;
-
+import com.example.userservice.util.HibernateUtil;
+import com.example.userservice.exception.DataAccessException;
+import com.example.userservice.exception.DuplicateEmailException;
+import com.example.userservice.exception.UserNotFoundException;
 import java.util.Scanner;
 
 public class App {
@@ -10,8 +13,35 @@ public class App {
     private static final Scanner SCANNER = new Scanner(System.in);
 
     public static void main(String[] args) {
-        System.out.println(" User Service ");
+        System.out.println("=== User Service ===");
 
+        try {
+            if (!initializeDatabase()) {
+                return;
+            }
+            runMenu();
+        } finally {
+            SCANNER.close();
+            HibernateUtil.shutdown();
+            System.out.println("Application stopped.");
+        }
+    }
+
+    private static boolean initializeDatabase() {
+        System.out.println("Connecting to the database...");
+        try {
+            HibernateUtil.getSessionFactory();
+            System.out.println("Database connection established.");
+            return true;
+        } catch (Exception e) {
+            System.err.println("[ERROR] Could not connect to the database: " + e.getMessage());
+            System.err.println("Make sure PostgreSQL is running (docker compose up -d)");
+            System.err.println("and that db.properties has the correct URL, username and password.");
+            return false;
+        }
+    }
+
+    private static void runMenu() {
         boolean running = true;
         while (running) {
             printMenu();
@@ -32,8 +62,10 @@ public class App {
                 }
             } catch (IllegalArgumentException e) {
                 System.out.println("ERROR: " + e.getMessage());
+            } catch (UserNotFoundException | DuplicateEmailException | DataAccessException e) {
+                System.out.println("ERROR: " + e.getMessage());
             } catch (Exception e) {
-                System.out.println("ERROR! Something went wrong: " + e.getMessage());
+                System.out.println("ERROR! Unexpected: " + e.getMessage());
             }
         }
     }
