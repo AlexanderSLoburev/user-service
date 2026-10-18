@@ -13,6 +13,11 @@
     <appender-ref ref="CONSOLE"/>
   </root> -->
 
+  <!-- ExceptionTranslatorTest deliberately feeds broken exceptions to
+       translate(), which logs them at ERROR level. Those stack traces are
+       expected, so silence just this logger during tests. -->
+  <logger name="com.example.userservice.exception.ExceptionTranslator" level="OFF"/>
+
   <root level="WARN">
     <appender-ref ref="CONSOLE"/>
   </root>
