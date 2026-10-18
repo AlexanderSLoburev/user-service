@@ -13,7 +13,7 @@ public class App {
     private static final Scanner SCANNER = new Scanner(System.in);
 
     public static void main(String[] args) {
-        System.out.println("=== User Service ===");
+        System.out.println("--- User Service ---");
 
         try {
             if (!initializeDatabase()) {
@@ -21,9 +21,10 @@ public class App {
             }
             runMenu();
         } finally {
-            SCANNER.close();
-            HibernateUtil.shutdown();
-            System.out.println("Application stopped.");
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                SCANNER.close();
+                HibernateUtil.shutdown();
+            }));
         }
     }
 
