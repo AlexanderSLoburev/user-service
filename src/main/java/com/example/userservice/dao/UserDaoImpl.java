@@ -4,16 +4,18 @@ import com.example.userservice.entity.User;
 import com.example.userservice.util.HibernateUtil;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import org.hibernate.Session;
+import org.hibernate.Transaction;
 
 public class UserDaoImpl implements UserDao {
 
     @Override
     public User save(User user) {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+        return executeInTransaction(session -> {
             session.persist(user);
             return user;
-        }
+        });
     }
 
     @Override
@@ -32,21 +34,19 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public User update(User user) {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.merge(user);
-        }
+        return executeInTransaction(session -> session.merge(user));
     }
 
     @Override
     public boolean deleteById(Long id) {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+        return executeInTransaction(session -> {
             User user = session.find(User.class, id);
             if (user == null) {
                 return false;
             }
             session.remove(user);
             return true;
-        }
+        });
     }
 
     @Override
@@ -57,5 +57,28 @@ public class UserDaoImpl implements UserDao {
                     .uniqueResultOptional();
         }
     }
-}
 
+    <R> R executeInTransaction(Function<Session, R> action) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Transaction tx = session.beginTransaction();
+            try {
+                R result = action.apply(session);
+                tx.commit();
+                return result;
+            } catch (RuntimeException e) {
+                rollbackQuietly(tx, e);
+                throw e;
+            }
+        }
+    }
+
+    private static void rollbackQuietly(Transaction tx, RuntimeException cause) {
+        try {
+            if (tx.getStatus().canRollback()) {
+                tx.rollback();
+            }
+        } catch (RuntimeException rollbackError) {
+            cause.addSuppressed(rollbackError);
+        }
+    }
+}
