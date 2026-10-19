@@ -5,11 +5,11 @@ import com.example.userservice.exception.UserNotFoundException;
 import com.example.userservice.util.HibernateUtil;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 /**
  * Hibernate implementation of the UserDao contract (Task 2.2).
@@ -71,18 +71,12 @@ public class UserDaoImpl implements UserDao {
       throw new IllegalArgumentException(
           "save: new user required (user != null, id == null)");
     }
-    try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-      Transaction tx = session.beginTransaction();
-      try {
-        session.persist(user);
-        tx.commit();
-        log.info("User saved: id={}, email={}", user.getId(), user.getEmail());
-        return user; // now with id and createdAt
-      } catch (RuntimeException e) {
-        rollbackIfActive(tx);
-        throw e;
-      }
-    }
+    User saved = executeInTransaction(session -> {
+      session.persist(user);
+      return user;
+    });
+    log.info("User saved: id={}, email={}", saved.getId(), saved.getEmail());
+    return saved;
   }
 
   @Override
@@ -91,24 +85,18 @@ public class UserDaoImpl implements UserDao {
       throw new IllegalArgumentException(
           "update: a user with a filled-in id is required");
     }
-    try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-      Transaction tx = session.beginTransaction();
-      try {
-        User managed = session.find(User.class, user.getId());
-        if (managed == null) {
-          throw new UserNotFoundException(user.getId());
-        }
-        managed.setName(user.getName());
-        managed.setEmail(user.getEmail());
-        managed.setAge(user.getAge());
-        tx.commit();
-        log.info("User updated: id={}", user.getId());
-        return managed;
-      } catch (RuntimeException e) {
-        rollbackIfActive(tx);
-        throw e;
+    User updated = executeInTransaction(session -> {
+      User managed = session.find(User.class, user.getId());
+      if (managed == null) {
+        throw new UserNotFoundException(user.getId());
       }
-    }
+      managed.setName(user.getName());
+      managed.setEmail(user.getEmail());
+      managed.setAge(user.getAge());
+      return managed;
+    });
+    log.info("User updated: id={}", updated.getId());
+    return updated;
   }
 
   @Override
@@ -116,23 +104,20 @@ public class UserDaoImpl implements UserDao {
     if (id == null) {
       throw new IllegalArgumentException("deleteById: id can not be null");
     }
-    try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-      Transaction tx = session.beginTransaction();
-      try {
-        User managed = session.find(User.class, id);
-        if (managed == null) {
-          tx.rollback();
-          return false;
-        }
-        session.remove(managed);
-        tx.commit();
-        log.info("User deleted: id={}", id);
-        return true;
-      } catch (RuntimeException e) {
-        rollbackIfActive(tx);
-        throw e;
+    boolean deleted = executeInTransaction(session -> {
+      User managed = session.find(User.class, id);
+      if (managed == null) {
+        return false;
       }
+      session.remove(managed);
+      return true;
+    });
+    if (deleted) {
+      log.info("User deleted: id={}", id);
+    } else {
+      log.debug("deleteById [{}]: not found", id);
     }
+    return deleted;
   }
 
   // ==================== auxiliary ====================
@@ -141,6 +126,24 @@ public class UserDaoImpl implements UserDao {
   private static void rollbackIfActive(Transaction tx) {
     if (tx != null && tx.isActive()) {
       tx.rollback();
+    }
+  }
+
+  private static <T> T executeInTransaction(Function<Session, T> action) {
+    Transaction tx = null;
+    try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+      tx = session.beginTransaction();
+      log.debug("Transaction begun");
+      T result = action.apply(session);
+      tx.commit();
+      log.debug("Transaction committed");
+      return result;
+    } catch (RuntimeException e) {
+      if (tx != null && tx.isActive()) {
+        tx.rollback();
+        log.debug("Transaction rolled back");
+      }
+      throw e;
     }
   }
 }
