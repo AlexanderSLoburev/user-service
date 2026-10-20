@@ -145,6 +145,16 @@ class UserDaoImplTest {
   }
 
   @Test
+  void when_findByEmailDiffersOnlyByCase_then_returnsThatUser() {
+    User saved = dao.save(new User("Case User", "Case.User@Example.com", 30));
+
+    Optional<User> found = dao.findByEmail("case.user@example.com");
+
+    assertTrue(found.isPresent());
+    assertEquals(saved.getId(), found.get().getId());
+  }
+
+  @Test
   void when_findByEmailNonexistent_then_returnsEmpty() {
     assertTrue(dao.findByEmail("nobody@example.com").isEmpty());
   }

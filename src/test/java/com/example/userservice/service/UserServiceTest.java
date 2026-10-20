@@ -60,6 +60,59 @@ public class UserServiceTest {
     }
 
     @Test
+    void createUser_throwsDuplicateEmailWhenEmailAlreadyStored() {
+        User existing = new User("Ivan", "ivan@example.com", 30);
+        UserDao dao = new UserDao() {
+            public User save(User u) { throw new AssertionError("save must not be called"); }
+            public Optional<User> findById(Long id) { return Optional.empty(); }
+            public Optional<User> findByEmail(String email) {
+                assertEquals("ivan@example.com", email);
+                return Optional.of(existing);
+            }
+            public List<User> findAll() { return List.of(); }
+            public User update(User u) { return u; }
+            public boolean deleteById(Long id) { return false; }
+        };
+        UserService service = new UserService(dao);
+        assertThrows(DuplicateEmailException.class,
+                () -> service.createUser("Petr", " IVAN@Example.COM ", 25));
+    }
+
+    @Test
+    void createUser_normalizesEmail() {
+        UserDao dao = new UserDao() {
+            public User save(User u) { return u; }
+            public Optional<User> findById(Long id) { return Optional.empty(); }
+            public Optional<User> findByEmail(String email) { return Optional.empty(); }
+            public List<User> findAll() { return List.of(); }
+            public User update(User u) { return u; }
+            public boolean deleteById(Long id) { return false; }
+        };
+        User created = new UserService(dao).createUser("Ivan", " Ivan@Example.COM ", 30);
+        assertEquals("ivan@example.com", created.getEmail());
+    }
+
+    @Test
+    void updateUser_throwsDuplicateEmailWhenEmailBelongsToAnotherUser() {
+        User target = new User("Petr", "petr@example.com", 25);
+        User existing = new User("Ivan", "ivan@example.com", 30);
+        UserDao dao = new UserDao() {
+            public User save(User u) { return u; }
+            public Optional<User> findById(Long id) { return Optional.of(target); }
+            public Optional<User> findByEmail(String email) {
+                assertEquals("ivan@example.com", email);
+                return Optional.of(existing);
+            }
+            public List<User> findAll() { return List.of(); }
+            public User update(User u) { return u; }
+            public boolean deleteById(Long id) { return false; }
+        };
+        UserService service = new UserService(dao);
+        assertThrows(DuplicateEmailException.class,
+                () -> service.updateUser(2L, "Petr", "IVAN@Example.COM", 25));
+    }
+
+    @Test
     void createUser_throwsDataAccessException() {
         UserDao dao = new UserDao() {
             public User save(User u) { throw new DataAccessException("db down"); }
