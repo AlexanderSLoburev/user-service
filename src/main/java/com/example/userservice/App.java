@@ -1,16 +1,20 @@
 package com.example.userservice;
 
 import com.example.userservice.console.InputValidator;
+import com.example.userservice.dao.UserDaoImpl;
 import com.example.userservice.entity.User;
-import com.example.userservice.util.HibernateUtil;
 import com.example.userservice.exception.DataAccessException;
 import com.example.userservice.exception.DuplicateEmailException;
 import com.example.userservice.exception.UserNotFoundException;
+import com.example.userservice.service.UserService;
+import com.example.userservice.util.HibernateUtil;
+import java.util.List;
 import java.util.Scanner;
 
 public class App {
 
     private static final Scanner SCANNER = new Scanner(System.in);
+    private static UserService userService;
 
     public static void main(String[] args) {
         System.out.println("--- User Service ---");
@@ -21,10 +25,9 @@ public class App {
             }
             runMenu();
         } finally {
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                SCANNER.close();
-                HibernateUtil.shutdown();
-            }));
+            SCANNER.close();
+            HibernateUtil.shutdown();
+            System.out.println("Application stopped.");
         }
     }
 
@@ -32,6 +35,7 @@ public class App {
         System.out.println("Connecting to the database...");
         try {
             HibernateUtil.getSessionFactory();
+            userService = new UserService(new UserDaoImpl());
             System.out.println("Database connection established.");
             return true;
         } catch (Exception e) {
@@ -131,27 +135,37 @@ public class App {
         String name = readName();
         String email = readEmail();
         Integer age = readAge();
-
-        User user = new User(name, email, age);
+        User user = userService.createUser(name, email, age);
         System.out.println("User created: " + user);
     }
 
     private static void findUserById() {
         Long id = readId();
-        System.out.println("Looking for user with id=" + id);
+        User user = userService.showUser(id);
+        System.out.println("User: " + user);
     }
 
     private static void showAllUsers() {
-        System.out.println("Showing all users");
+        List<User> users = userService.listUsers();
+        if (users.isEmpty()) {
+            System.out.println("No users found.");
+            return;
+        }
+        users.forEach(System.out::println);
     }
 
     private static void updateUser() {
         Long id = readId();
-        System.out.println("Updating user with id=" + id);
+        String name = readName();
+        String email = readEmail();
+        Integer age = readAge();
+        User user = userService.updateUser(id, name, email, age);
+        System.out.println("User updated: " + user);
     }
 
     private static void deleteUser() {
         Long id = readId();
-        System.out.println("Deleting user with id=" + id);
+        userService.deleteUser(id);
+        System.out.println("User deleted: id=" + id);
     }
 }
