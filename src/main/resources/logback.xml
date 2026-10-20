@@ -3,13 +3,6 @@
 
   <!-- ==================== Appenders ==================== -->
 
-  <!-- Console: a compact format for live development -->
-  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder>
-      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-    </encoder>
-  </appender>
-
   <!-- File: full format, rotated daily, 7-day history -->
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>logs/user-service.log</file>
@@ -39,7 +32,6 @@
   <!-- ==================== Root ==================== -->
 
   <root level="INFO">
-    <appender-ref ref="CONSOLE"/>
     <appender-ref ref="FILE"/>
   </root>
 
