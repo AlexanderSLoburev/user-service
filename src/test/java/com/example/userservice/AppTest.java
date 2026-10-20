@@ -4,22 +4,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.example.userservice.entity.User;
 import com.example.userservice.exception.UserNotFoundException;
+import com.example.userservice.service.UserService;
 import com.example.userservice.util.HibernateUtil;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -35,12 +37,14 @@ import org.junit.jupiter.api.TestMethodOrder;
  *
  * <p>These tests drive the private command handlers and {@code main} with a
  * scripted stdin and captured stdout/stderr. The database is never contacted:
- * the {@code HibernateUtil} factory is replaced with a proxy when
- * {@code initializeDatabase} needs to succeed or fail.
+ * {@code userService} is replaced with a fake, and the {@code HibernateUtil}
+ * factory is replaced with a proxy when {@code initializeDatabase} needs to
+ * succeed or fail.
  *
  * <p>Note: {@code App} captures {@code System.in} once, in a static final
  * {@code Scanner}. Therefore stdin is replaced with {@link SwappableInputStream}
  * before the {@code App} class is initialized, and each test swaps its delegate.
+ * Tests that call {@code main} close that scanner, so they run last.
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AppTest {
@@ -52,6 +56,7 @@ class AppTest {
 
   private ByteArrayOutputStream out;
   private ByteArrayOutputStream err;
+  private FakeUserService userService;
 
   @BeforeAll
   static void bindAppToControlledInput() throws ClassNotFoundException {
@@ -65,18 +70,21 @@ class AppTest {
   }
 
   @BeforeEach
-  void captureOutput() {
+  void captureOutput() throws Exception {
     out = new ByteArrayOutputStream();
     err = new ByteArrayOutputStream();
     System.setOut(new PrintStream(out, true, StandardCharsets.UTF_8));
     System.setErr(new PrintStream(err, true, StandardCharsets.UTF_8));
+    userService = new FakeUserService();
+    setUserService(userService);
   }
 
   @AfterEach
-  void restoreOutput() {
+  void restoreOutput() throws Exception {
     System.setOut(ORIGINAL_OUT);
     System.setErr(ORIGINAL_ERR);
     INPUT.feed("");
+    setUserService(null);
   }
 
   // ==================== menu ====================
@@ -127,6 +135,23 @@ class AppTest {
     String output = output();
     assertTrue(output.contains("User created:"));
     assertTrue(output.contains("name='Maria'"));
+    assertTrue(output.contains("Goodbye!"));
+  }
+
+  @Test
+  void when_allMenuCommandsEntered_then_eachCommandIsDispatched()
+      throws Exception {
+    userService.setUsers(List.of(new User("Ivan", "ivan@example.com", 30)));
+    INPUT.feed("2\n1\n3\n4\n2\nPetr\npetr@example.com\n25\n5\n3\n0\n");
+
+    invoke("runMenu");
+
+    String output = output();
+    assertTrue(output.contains("User: "));
+    assertTrue(output.contains("name='Ivan'"));
+    assertTrue(output.contains("User updated:"));
+    assertTrue(output.contains("name='Petr'"));
+    assertTrue(output.contains("User deleted: id=3"));
     assertTrue(output.contains("Goodbye!"));
   }
 
@@ -196,44 +221,61 @@ class AppTest {
     assertTrue(output().contains("Id must be positive"));
   }
 
-  // ==================== placeholder commands ====================
+  // ==================== user commands ====================
 
   @Test
-  void when_showAllUsersCommandSelected_then_printsPlaceholder()
-      throws Exception {
+  void when_showAllUsersCommandSelected_then_printsUsers() throws Exception {
+    userService.setUsers(List.of(new User("Ivan", "ivan@example.com", 30)));
+
     invoke("showAllUsers");
 
-    assertTrue(output().contains("Showing all users"));
+    String output = output();
+    assertTrue(output.contains("name='Ivan'"));
+    assertTrue(output.contains("email='ivan@example.com'"));
   }
 
   @Test
-  void when_findUserByIdCommandSelected_then_printsRequestedId()
+  void when_showAllUsersHasNoUsers_then_printsNoUsersFound()
       throws Exception {
+    userService.setUsers(List.of());
+
+    invoke("showAllUsers");
+
+    assertTrue(output().contains("No users found."));
+  }
+
+  @Test
+  void when_findUserByIdCommandSelected_then_printsUser() throws Exception {
+    userService.setUsers(List.of(new User("Ivan", "ivan@example.com", 30)));
     INPUT.feed("42\n");
 
     invoke("findUserById");
 
-    assertTrue(output().contains("Looking for user with id=42"));
+    String output = output();
+    assertTrue(output.contains("User: "));
+    assertTrue(output.contains("name='Ivan'"));
   }
 
   @Test
-  void when_updateUserCommandSelected_then_printsRequestedId()
+  void when_updateUserCommandSelected_then_printsUpdatedUser()
       throws Exception {
-    INPUT.feed("7\n");
+    INPUT.feed("7\nPetr\npetr@example.com\n25\n");
 
     invoke("updateUser");
 
-    assertTrue(output().contains("Updating user with id=7"));
+    String output = output();
+    assertTrue(output.contains("User updated:"));
+    assertTrue(output.contains("name='Petr'"));
   }
 
   @Test
-  void when_deleteUserCommandSelected_then_printsRequestedId()
+  void when_deleteUserCommandSelected_then_printsDeletedId()
       throws Exception {
     INPUT.feed("7\n");
 
     invoke("deleteUser");
 
-    assertTrue(output().contains("Deleting user with id=7"));
+    assertTrue(output().contains("User deleted: id=7"));
   }
 
   // ==================== main ====================
@@ -244,6 +286,7 @@ class AppTest {
   }
 
   @Test
+  @Order(Integer.MAX_VALUE - 1)
   void when_mainRunsWithExitCommand_then_printsGreetingAndGoodbye()
       throws Exception {
     SessionFactory previous = replaceSessionFactory(factoryProxy(true));
@@ -261,9 +304,11 @@ class AppTest {
     assertTrue(output.contains("Connecting to the database..."));
     assertTrue(output.contains("Database connection established."));
     assertTrue(output.contains("Goodbye!"));
+    assertTrue(output.contains("Application stopped."));
   }
 
   @Test
+  @Order(Integer.MAX_VALUE)
   void when_databaseConnectionFails_then_printsErrorAndStops()
       throws Exception {
     SessionFactory previous = replaceSessionFactory(factoryProxy(false));
@@ -277,23 +322,9 @@ class AppTest {
     assertTrue(output().contains("Connecting to the database..."));
     assertTrue(errorOutput().contains(
         "[ERROR] Could not connect to the database"));
+    assertTrue(output().contains("Application stopped."));
     assertFalse(output().contains("Database connection established."));
     assertFalse(output().contains("Goodbye!"));
-  }
-
-  @Test
-  void when_allMenuCommandsEntered_then_eachCommandIsDispatched()
-      throws Exception {
-    INPUT.feed("2\n1\n3\n4\n2\n5\n3\n0\n");
-
-    invoke("runMenu");
-
-    String output = output();
-    assertTrue(output.contains("Looking for user with id=1"));
-    assertTrue(output.contains("Showing all users"));
-    assertTrue(output.contains("Updating user with id=2"));
-    assertTrue(output.contains("Deleting user with id=3"));
-    assertTrue(output.contains("Goodbye!"));
   }
 
   // ==================== error handling ====================
@@ -301,9 +332,8 @@ class AppTest {
   @Test
   void when_commandThrowsIllegalArgumentException_then_printsErrorAndContinues()
       throws Exception {
+    userService.failCreateWith(new IllegalArgumentException("boom"));
     INPUT.feed("1\nIvan\nivan@example.com\n30\n0\n");
-    System.setOut(failingStreamOn("User created:",
-        new IllegalArgumentException("boom")));
 
     invoke("runMenu");
 
@@ -315,9 +345,8 @@ class AppTest {
   @Test
   void when_commandThrowsDomainException_then_printsErrorAndContinues()
       throws Exception {
+    userService.failCreateWith(new UserNotFoundException("boom"));
     INPUT.feed("1\nIvan\nivan@example.com\n30\n0\n");
-    System.setOut(failingStreamOn("User created:",
-        new UserNotFoundException("boom")));
 
     invoke("runMenu");
 
@@ -329,24 +358,14 @@ class AppTest {
   @Test
   void when_commandThrowsUnexpectedException_then_printsErrorAndContinues()
       throws Exception {
+    userService.failCreateWith(new RuntimeException("boom"));
     INPUT.feed("1\nIvan\nivan@example.com\n30\n0\n");
-    System.setOut(failingStreamOn("User created:",
-        new RuntimeException("boom")));
 
     invoke("runMenu");
 
     String output = output();
     assertTrue(output.contains("ERROR! Unexpected: boom"));
     assertTrue(output.contains("Goodbye!"));
-  }
-
-  @Test
-  @Order(Integer.MAX_VALUE)
-  void when_shutdownHookRuns_then_scannerIsClosedAndFactoryShutDown()
-      throws Exception {
-    invoke("lambda$main$0");
-
-    assertThrows(IllegalStateException.class, () -> invoke("readName"));
   }
 
   // ==================== auxiliary ====================
@@ -373,18 +392,18 @@ class AppTest {
     }
   }
 
+  private static void setUserService(UserService service) throws Exception {
+    Field field = App.class.getDeclaredField("userService");
+    field.setAccessible(true);
+    field.set(null, service);
+  }
+
   private String output() {
     return out.toString(StandardCharsets.UTF_8);
   }
 
   private String errorOutput() {
     return err.toString(StandardCharsets.UTF_8);
-  }
-
-  private PrintStream failingStreamOn(String trigger, RuntimeException failure) {
-    ThrowingPrintStream stream = new ThrowingPrintStream(out);
-    stream.failOn(trigger, failure);
-    return stream;
   }
 
   private static SessionFactory replaceSessionFactory(SessionFactory replacement)
@@ -397,16 +416,25 @@ class AppTest {
   }
 
   private static SessionFactory factoryProxy(boolean open) {
+    AtomicBoolean openState = new AtomicBoolean(open);
+    AtomicBoolean firstFailure = new AtomicBoolean(true);
     return (SessionFactory) Proxy.newProxyInstance(
         AppTest.class.getClassLoader(),
         new Class<?>[] {SessionFactory.class},
         (proxy, method, args) -> {
           switch (method.getName()) {
             case "isOpen" -> {
-              if (open) {
-                return true;
+              if (!open) {
+                if (firstFailure.getAndSet(false)) {
+                  throw new IllegalStateException("factory is broken");
+                }
+                return false;
               }
-              throw new IllegalStateException("factory is broken");
+              return openState.get();
+            }
+            case "close" -> {
+              openState.set(false);
+              return null;
             }
             case "toString" -> {
               return "factory-proxy";
@@ -442,29 +470,52 @@ class AppTest {
     }
   }
 
-  /** An stdout that throws a given exception once, on a matching line. */
-  private static final class ThrowingPrintStream extends PrintStream {
+  /** A {@link UserService} double that never touches the database. */
+  private static final class FakeUserService extends UserService {
 
-    private String trigger;
-    private RuntimeException failure;
+    private List<User> users = List.of();
+    private RuntimeException createFailure;
 
-    ThrowingPrintStream(OutputStream out) {
-      super(out, true, StandardCharsets.UTF_8);
+    FakeUserService() {
+      super(null);
     }
 
-    void failOn(String trigger, RuntimeException failure) {
-      this.trigger = trigger;
-      this.failure = failure;
+    void setUsers(List<User> users) {
+      this.users = users;
+    }
+
+    void failCreateWith(RuntimeException failure) {
+      this.createFailure = failure;
     }
 
     @Override
-    public void println(String text) {
-      if (failure != null && text.startsWith(trigger)) {
-        RuntimeException toThrow = failure;
-        failure = null;
-        throw toThrow;
+    public User createUser(String name, String email, Integer age) {
+      if (createFailure != null) {
+        throw createFailure;
       }
-      super.println(text);
+      return new User(name, email, age);
+    }
+
+    @Override
+    public User showUser(Long id) {
+      if (users.isEmpty()) {
+        return new User("Ivan", "ivan@example.com", 30);
+      }
+      return users.get(0);
+    }
+
+    @Override
+    public List<User> listUsers() {
+      return users;
+    }
+
+    @Override
+    public User updateUser(Long id, String name, String email, Integer age) {
+      return new User(name, email, age);
+    }
+
+    @Override
+    public void deleteUser(Long id) {
     }
   }
 }
