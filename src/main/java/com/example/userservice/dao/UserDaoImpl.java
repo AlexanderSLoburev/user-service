@@ -1,6 +1,9 @@
 package com.example.userservice.dao;
 
 import com.example.userservice.entity.User;
+import com.example.userservice.exception.DataAccessException;
+import com.example.userservice.exception.DuplicateEmailException;
+import com.example.userservice.exception.ExceptionTranslator;
 import com.example.userservice.exception.UserNotFoundException;
 import com.example.userservice.util.HibernateUtil;
 import java.util.List;
@@ -37,6 +40,8 @@ public class UserDaoImpl implements UserDao {
     log.debug("findById [{}]", id);
     try (Session session = HibernateUtil.getSessionFactory().openSession()) {
       return Optional.ofNullable(session.find(User.class, id));
+    } catch (RuntimeException e) {
+      throw translate(e);
     }
   }
 
@@ -51,6 +56,8 @@ public class UserDaoImpl implements UserDao {
           .createQuery("from User u where u.email = :email", User.class)
           .setParameter("email", email)
           .uniqueResultOptional();
+    } catch (RuntimeException e) {
+      throw translate(e);
     }
   }
 
@@ -60,6 +67,8 @@ public class UserDaoImpl implements UserDao {
     try (Session session = HibernateUtil.getSessionFactory().openSession()) {
       return session.createQuery("from User u order by u.id", User.class)
           .list();
+    } catch (RuntimeException e) {
+      throw translate(e);
     }
   }
 
@@ -122,16 +131,38 @@ public class UserDaoImpl implements UserDao {
 
   // ==================== auxiliary ====================
 
-  /** A rollback if the transaction is still active. */
+  /**
+   * A rollback if the transaction is still active. Never masks the original.
+   */
   private static void rollbackIfActive(Transaction tx) {
-    if (tx != null && tx.isActive()) {
-      tx.rollback();
+    if (tx == null || !tx.isActive()) {
+      return;
     }
+    try {
+      tx.rollback();
+      log.debug("Transaction rolled back");
+    } catch (RuntimeException rollbackFailure) {
+      log.warn("Rollback failed", rollbackFailure);
+    }
+  }
+
+  /**
+   * Passes our own domain exceptions through; translates infrastructure ones.
+   */
+  private static RuntimeException translate(RuntimeException e) {
+    if (e instanceof UserNotFoundException ||
+        e instanceof DuplicateEmailException ||
+        e instanceof DataAccessException) {
+      return e;
+    }
+    return ExceptionTranslator.translate(e);
   }
 
   private static <T> T executeInTransaction(Function<Session, T> action) {
     Transaction tx = null;
-    try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+    Session session = null;
+    try {
+      session = HibernateUtil.getSessionFactory().openSession();
       tx = session.beginTransaction();
       log.debug("Transaction begun");
       T result = action.apply(session);
@@ -139,11 +170,14 @@ public class UserDaoImpl implements UserDao {
       log.debug("Transaction committed");
       return result;
     } catch (RuntimeException e) {
-      if (tx != null && tx.isActive()) {
-        tx.rollback();
-        log.debug("Transaction rolled back");
+      // Roll back BEFORE the session is closed, and never let a rollback
+      // failure hide the original exception.
+      rollbackIfActive(tx);
+      throw translate(e);
+    } finally {
+      if (session != null) {
+        session.close();
       }
-      throw e;
     }
   }
 }
