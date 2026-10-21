@@ -2,6 +2,7 @@ package com.example.userservice.util;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Properties;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -22,6 +23,12 @@ public final class HibernateUtil {
 
   private static final Logger log =
       LoggerFactory.getLogger(HibernateUtil.class);
+
+  private static final List<String> CONNECTION_KEYS = List.of(
+      "hibernate.connection.url",
+      "hibernate.connection.username",
+      "hibernate.connection.password",
+      "hibernate.connection.driver_class");
 
   private static SessionFactory factory;
 
@@ -56,12 +63,13 @@ public final class HibernateUtil {
   private static SessionFactory buildSessionFactory() {
     Configuration cfg = new Configuration().configure(); // hibernate.cfg.xml
     cfg.addProperties(loadDbProperties()); // secrets from db.properties
+    cfg.addProperties(loadSystemOverrides());
 
     if (cfg.getProperty("hibernate.connection.url") == null) {
       throw new IllegalStateException(
           "hibernate.connection.url did not make it into the configuration. "
-          + "Check that db.properties contains hibernate.connection.* keys "
-          + "and matches the code.");
+          + "Set hibernate.connection.* system properties or provide "
+          + "db.properties with the same keys.");
     }
 
     SessionFactory built = cfg.buildSessionFactory();
@@ -75,13 +83,24 @@ public final class HibernateUtil {
              HibernateUtil.class.getClassLoader().getResourceAsStream(
                  "db.properties")) {
       if (in == null) {
-        throw new IllegalStateException(
-            "db.properties was not found in the classpath. "
-            + "Copy db.properties.example to db.properties");
+        log.warn("db.properties was not found in the classpath; "
+                 + "falling back to hibernate.connection.* system properties");
+        return props;
       }
       props.load(in);
     } catch (IOException e) {
       throw new IllegalStateException("Unable to read db.properties", e);
+    }
+    return props;
+  }
+
+  private static Properties loadSystemOverrides() {
+    Properties props = new Properties();
+    for (String key : CONNECTION_KEYS) {
+      String value = System.getProperty(key);
+      if (value != null && !value.isBlank()) {
+        props.setProperty(key, value);
+      }
     }
     return props;
   }
