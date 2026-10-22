@@ -10,14 +10,18 @@ public abstract class PostgresTestSupport {
   private static final Path SCHEMA =
       Path.of("docker", "init", "01-schema.sql");
 
-  protected static final PostgreSQLContainer POSTGRES =
-      new PostgreSQLContainer("postgres:18")
-          .withDatabaseName("user_service")
-          .withUsername("postgres")
-          .withPassword("postgres")
-          .withCopyFileToContainer(
-              MountableFile.forHostPath(SCHEMA),
-              "/docker-entrypoint-initdb.d/01-schema.sql");
+  protected static final PostgreSQLContainer POSTGRES = createContainer();
+
+  private static PostgreSQLContainer createContainer() {
+    PostgreSQLContainer container = new PostgreSQLContainer("postgres:18");
+    container.withDatabaseName("user_service");
+    container.withUsername("postgres");
+    container.withPassword("postgres");
+    container.withCopyFileToContainer(
+        MountableFile.forHostPath(SCHEMA),
+        "/docker-entrypoint-initdb.d/01-schema.sql");
+    return container;
+  }
 
   static {
     POSTGRES.start();
@@ -26,6 +30,6 @@ public abstract class PostgresTestSupport {
     System.setProperty("hibernate.connection.password", POSTGRES.getPassword());
     HibernateUtil.shutdown();
     Runtime.getRuntime().addShutdownHook(
-        new Thread(POSTGRES::stop, "postgres-testcontainer-shutdown"));
+        new Thread(POSTGRES::close, "postgres-testcontainer-shutdown"));
   }
 }
