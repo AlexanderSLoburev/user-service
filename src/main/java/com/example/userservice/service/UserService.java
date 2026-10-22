@@ -6,6 +6,7 @@ import com.example.userservice.exception.DataAccessException;
 import com.example.userservice.exception.DuplicateEmailException;
 import com.example.userservice.exception.UserNotFoundException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,8 +22,12 @@ public class UserService {
 
     public User createUser(String name, String email, Integer age) {
         log.info("Creating user: name={}, email={}, age={}", name, email, age);
-        User user = new User(name, email, age);
+        String normalizedEmail = normalizeEmail(email);
+        User user = new User(name, normalizedEmail, age);
         try {
+            if (userDao.findByEmail(normalizedEmail).isPresent()) {
+                throw new DuplicateEmailException(normalizedEmail);
+            }
             User saved = userDao.save(user);
             log.info("User created: id={}", saved.getId());
             return saved;
@@ -72,9 +77,15 @@ public class UserService {
             log.warn("User not found on update: id={}", id);
             throw new UserNotFoundException(id);
         }
+        String normalizedEmail = normalizeEmail(email);
+        Optional<User> byEmail = userDao.findByEmail(normalizedEmail);
+        if (byEmail.isPresent() && !id.equals(byEmail.get().getId())) {
+            log.warn("Duplicate email on update: id={}, email={}", id, normalizedEmail);
+            throw new DuplicateEmailException(normalizedEmail);
+        }
         User user = existing.get();
         user.setName(name);
-        user.setEmail(email);
+        user.setEmail(normalizedEmail);
         user.setAge(age);
         try {
             User updated = userDao.update(user);
@@ -107,5 +118,9 @@ public class UserService {
             log.error("Data access error on delete user: id={}", id, e);
             throw e;
         }
+    }
+
+    private static String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }
 }
