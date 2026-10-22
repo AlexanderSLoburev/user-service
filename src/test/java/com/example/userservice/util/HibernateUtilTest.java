@@ -11,15 +11,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import com.example.userservice.PostgresTestSupport;
+import com.example.userservice.PostgresExtension;
 import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 
-class HibernateUtilTest extends PostgresTestSupport {
+@ExtendWith(PostgresExtension.class)
+class HibernateUtilTest {
 
   @AfterAll
   static void tearDown() {

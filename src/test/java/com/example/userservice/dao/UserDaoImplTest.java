@@ -19,8 +19,9 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-import com.example.userservice.PostgresTestSupport;
+import com.example.userservice.PostgresExtension;
 import com.example.userservice.entity.User;
 import com.example.userservice.exception.DataAccessException;
 import com.example.userservice.exception.DuplicateEmailException;
@@ -36,7 +37,8 @@ import com.example.userservice.util.HibernateUtil;
  * so the tests are independent of one another and of the order in which they
  * are run.
  */
-class UserDaoImplTest extends PostgresTestSupport {
+@ExtendWith(PostgresExtension.class)
+class UserDaoImplTest {
 
   private static UserDao dao;
 
