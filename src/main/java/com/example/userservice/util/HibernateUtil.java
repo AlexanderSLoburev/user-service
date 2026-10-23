@@ -25,10 +25,8 @@ public final class HibernateUtil {
       LoggerFactory.getLogger(HibernateUtil.class);
 
   private static final List<String> CONNECTION_KEYS = List.of(
-      "hibernate.connection.url",
-      "hibernate.connection.username",
-      "hibernate.connection.password",
-      "hibernate.connection.driver_class");
+      "hibernate.connection.url", "hibernate.connection.username",
+      "hibernate.connection.password", "hibernate.connection.driver_class");
 
   private static SessionFactory factory;
 
@@ -38,9 +36,9 @@ public final class HibernateUtil {
 
   /**
    * Returns the factory for the entire application. Lazy initialization:
-   * On the first call, it reads hibernate.cfg.xml and db.properties
-   * and (if hbm2ddl.auto=validate) validates the User entity against the live
-   * database.
+   * On the first call, it reads hibernate.cfg.xml and db.properties (or system
+   * overrides) and (if hbm2ddl.auto=validate) validates the User entity against
+   * the live database.
    */
   public static synchronized SessionFactory getSessionFactory() {
     if (factory == null || !factory.isOpen()) {
