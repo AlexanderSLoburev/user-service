@@ -1,0 +1,47 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - '**' # Запускать на push в любую ветку
+  pull_request:
+    branches:
+      - '**' # Запускать на PR в любую ветку
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven # Кэш Maven зависимостей
+
+      # Unit-тесты (без БД, Mockito)
+      - name: Run unit tests
+        run: mvn -B test
+
+      # Интеграционные тесты (Testcontainers сам поднимет PostgreSQL)
+      - name: Run integration tests
+        run: mvn -B verify
+
+      # Публикация отчётов
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+
+      - name: Upload JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
