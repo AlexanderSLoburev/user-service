@@ -15,19 +15,18 @@
     <description>A console CRUD application: Hibernate + PostgreSQL</description>
 
     <properties>
-        <!-- ===== Java ===== -->
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <!-- ===== Library Versions ===== -->
         <hibernate.version>7.4.13.Final</hibernate.version>
         <postgresql.version>42.7.14</postgresql.version>
         <slf4j.version>2.0.20</slf4j.version>
         <logback.version>1.6.5</logback.version>
         <junit.version>6.1.3</junit.version>
+        <mockito.version>5.14.2</mockito.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
 
-        <!-- ===== Plugin Versions ===== -->
         <compiler.plugin.version>3.14.0</compiler.plugin.version>
         <surefire.plugin.version>3.5.3</surefire.plugin.version>
         <jar.plugin.version>3.4.2</jar.plugin.version>
@@ -35,8 +34,6 @@
         <exec.plugin.version>3.5.0</exec.plugin.version>
 
         <main.class>com.example.userservice.App</main.class>
-
-        <!-- Minimum branch coverage for jacoco-check (85%) -->
         <jacoco.min.branch.coverage>0.85</jacoco.min.branch.coverage>
     </properties>
 
@@ -46,6 +43,13 @@
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
                 <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -60,14 +64,14 @@
             <version>${hibernate.version}</version>
         </dependency>
 
-        <!-- JDBC driver for PostgreSQL -->
+        <!-- PostgreSQL JDBC -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.version}</version>
         </dependency>
 
-        <!-- Logging: API SLF4J + Logback -->
+        <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -79,33 +83,41 @@
             <version>${logback.version}</version>
         </dependency>
 
-        <!-- Tests: JUnit 6 -->
+        <!-- JUnit -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- JUnit Platform Launcher-->
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-launcher</artifactId>
             <scope>test</scope>
         </dependency>
 
-        <!-- Mockito for mocking in tests -->
+        <!-- Mockito -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.14.2</version>
+            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- Mockito JUnit 5 integration -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>5.14.2</version>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -121,33 +133,28 @@
                 </configuration>
             </plugin>
 
-            <!-- Launching unit tests via the JUnit Platform -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire.plugin.version}</version>
                 <configuration>
                     <excludes>
-                        <!-- Integration test: needs a live PostgreSQL, runs in mvn verify -->
                         <exclude>**/UserDaoImplTest.java</exclude>
                     </excludes>
                 </configuration>
             </plugin>
 
-            <!-- JaCoCo: Test Coverage -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.plugin.version}</version>
                 <executions>
-                    <!-- 1. Embed a Java agent when tests are run -->
                     <execution>
                         <id>prepare-agent</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
                     </execution>
-                    <!-- 2. Generates a report (HTML/XML) in target/site/jacoco -->
                     <execution>
                         <id>report</id>
                         <phase>verify</phase>
@@ -158,7 +165,6 @@
                 </executions>
             </plugin>
 
-            <!-- Launching the console application: mvn compile exec:java -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -168,7 +174,6 @@
                 </configuration>
             </plugin>
 
-            <!-- Writes Main-Class to the JAR manifest -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
