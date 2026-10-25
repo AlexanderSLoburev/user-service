@@ -29,13 +29,10 @@ import com.example.userservice.exception.UserNotFoundException;
 import com.example.userservice.util.HibernateUtil;
 
 /**
- * Integration tests for UserDaoImpl (Task 2.5).
+ * Integration tests for UserDaoImpl against a PostgreSQL Testcontainer.
  *
- * Prerequisite: a live database — `docker compose up -d`.
- *
- * Isolation: Before each test, the table is cleared using a bulk DELETE,
- * so the tests are independent of one another and of the order in which they
- * are run.
+ * Before each test, the table is cleared so the tests are independent of one
+ * another and of the order in which they are run.
  */
 @ExtendWith(PostgresExtension.class)
 class UserDaoImplTest {
