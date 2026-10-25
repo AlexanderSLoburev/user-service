@@ -31,16 +31,34 @@
 
 ## Тестирование
 
-DAO-интеграционные тесты запускают отдельную временную PostgreSQL через
-Testcontainers и загружают схему из `docker/init/01-schema.sql`. Перед каждым
-тестом таблица очищается, поэтому тесты не требуют предварительно запущенной
-БД приложения и не зависят от её данных.
+Проект использует два типа тестов, которые запускаются отдельно:
 
-Для запуска нужны Java 21, Maven и работающий Docker daemon:
+### Unit-тесты (без Docker)
 
 ```powershell
-mvn -Dtest=UserDaoImplTest test
+mvn test
 ```
 
-Запускать `docker compose up` или настраивать `db.properties` для тестов не
-нужно. Testcontainers завершает временную БД вместе с тестовым процессом.
+Запускаются только unit-тесты: AppTest, InputValidatorTest, UserServiceTest, UserTest, ExceptionTranslatorTest.
+Docker не нужен.
+
+### Все тесты, включая интеграционные (с Docker)
+
+```powershell
+mvn verify
+```
+
+Сначала запускаются unit-тесты (surefire), затем интеграционные (failsafe + Testcontainers).
+Нужен Docker Desktop.
+
+Интеграционные тесты (UserDaoImplIT, HibernateUtilIT) поднимают отдельную временную PostgreSQL через Testcontainers и загружают схему из docker/init/01-schema.sql. Перед каждым тестом таблица очищается, поэтому тесты не требуют предварительно запущенной БД приложения и не зависят от её данных.
+
+Запускать docker compose up или настраивать db.properties для тестов не нужно — Testcontainers завершает временную БД вместе с тестовым процессом.
+
+## Отчёты
+
+target/surefire-reports/ — unit-тесты.
+
+target/failsafe-reports/ — интеграционные тесты.
+
+target/site/jacoco/ — покрытие (после mvn verify).

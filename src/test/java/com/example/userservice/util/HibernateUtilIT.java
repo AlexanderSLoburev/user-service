@@ -18,10 +18,11 @@ import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.Tag;
 
-
+@Tag("integration")
 @ExtendWith(PostgresExtension.class)
-class HibernateUtilTest {
+class HibernateUtilIT {
 
   @AfterAll
   static void tearDown() {

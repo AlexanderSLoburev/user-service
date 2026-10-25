@@ -34,8 +34,9 @@ import com.example.userservice.util.HibernateUtil;
  * Before each test, the table is cleared so the tests are independent of one
  * another and of the order in which they are run.
  */
+@Tag("integration")
 @ExtendWith(PostgresExtension.class)
-class UserDaoImplTest {
+class UserDaoImplIT {
 
   private static UserDao dao;
 
