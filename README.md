@@ -28,3 +28,19 @@
 | `cannot connect to the Docker daemon` | Docker Desktop не запущен | Запустить приложение Docker и повторить |
 
 Полезно для отладки: `docker compose config` — покажет итоговый файл со всеми подставленными переменными из `.env`.
+
+## Тестирование
+
+DAO-интеграционные тесты запускают отдельную временную PostgreSQL через
+Testcontainers и загружают схему из `docker/init/01-schema.sql`. Перед каждым
+тестом таблица очищается, поэтому тесты не требуют предварительно запущенной
+БД приложения и не зависят от её данных.
+
+Для запуска нужны Java 21, Maven и работающий Docker daemon:
+
+```powershell
+mvn -Dtest=UserDaoImplTest test
+```
+
+Запускать `docker compose up` или настраивать `db.properties` для тестов не
+нужно. Testcontainers завершает временную БД вместе с тестовым процессом.
