@@ -39,6 +39,13 @@ jobs:
           name: surefire-reports
           path: target/surefire-reports/
 
+      - name: Upload failsafe reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failsafe-reports
+          path: target/failsafe-reports/
+
       - name: Upload JaCoCo coverage report
         if: always()
         uses: actions/upload-artifact@v4
