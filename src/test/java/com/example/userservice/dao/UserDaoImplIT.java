@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -30,8 +31,9 @@ import com.example.userservice.util.HibernateUtil;
  * Each test starts from an empty {@code users} table, so the tests are
  * independent of one another and of the order in which they are run.
  */
+@Tag("integration")
 @ExtendWith(PostgresExtension.class)
-class UserDaoImplTest {
+class UserDaoImplIT {
 
   private static UserDao dao;
 

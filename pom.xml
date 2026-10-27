@@ -15,30 +15,25 @@
     <description>A console CRUD application: Hibernate + PostgreSQL</description>
 
     <properties>
-        <!-- ===== Java ===== -->
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <!-- ===== Library Versions ===== -->
         <hibernate.version>7.4.13.Final</hibernate.version>
         <postgresql.version>42.7.14</postgresql.version>
         <slf4j.version>2.0.20</slf4j.version>
         <logback.version>1.6.5</logback.version>
         <junit.version>6.1.3</junit.version>
-        <mockito.version>5.24.0</mockito.version>
+        <mockito.version>5.14.2</mockito.version>
         <testcontainers.version>2.0.5</testcontainers.version>
 
-        <!-- ===== Plugin Versions ===== -->
         <compiler.plugin.version>3.14.0</compiler.plugin.version>
-        <surefire.plugin.version>3.5.3</surefire.plugin.version>
+        <surefire.plugin.version>3.5.2</surefire.plugin.version>
         <jar.plugin.version>3.4.2</jar.plugin.version>
         <jacoco.plugin.version>0.8.15</jacoco.plugin.version>
         <exec.plugin.version>3.5.0</exec.plugin.version>
 
         <main.class>com.example.userservice.App</main.class>
-
-        <!-- Minimum branch coverage for jacoco-check (85%) -->
         <jacoco.min.branch.coverage>0.85</jacoco.min.branch.coverage>
     </properties>
 
@@ -69,14 +64,14 @@
             <version>${hibernate.version}</version>
         </dependency>
 
-        <!-- JDBC driver for PostgreSQL -->
+        <!-- PostgreSQL JDBC -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.version}</version>
         </dependency>
 
-        <!-- Logging: API SLF4J + Logback -->
+        <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -88,21 +83,19 @@
             <version>${logback.version}</version>
         </dependency>
 
-        <!-- Tests: JUnit 6 -->
+        <!-- JUnit -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- JUnit Platform Launcher-->
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-launcher</artifactId>
             <scope>test</scope>
         </dependency>
 
-        <!-- Mockito: unit tests -->
+        <!-- Mockito -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
@@ -116,7 +109,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Testcontainers: integration tests -->
+        <!-- Testcontainers -->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-postgresql</artifactId>
@@ -131,36 +124,50 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>${compiler.plugin.version}</version>
-                <configuration>
-                    <release>21</release>
-                </configuration>
-            </plugin>
-
-            <!-- Launching unit tests via the JUnit Platform -->
+            <!-- Unit tests: mvn test (no Docker) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire.plugin.version}</version>
+                <configuration>
+                    <excludedGroups>integration</excludedGroups>
+                    <forkCount>0</forkCount>
+                </configuration>
             </plugin>
 
-            <!-- JaCoCo: Test Coverage -->
+            <!-- Integration tests: mvn verify (with Docker) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${surefire.plugin.version}</version>
+                <configuration>
+                    <groups>integration</groups>
+                    <includes>
+                        <include>**/*IT.java</include>
+                    </includes>
+                    <forkCount>0</forkCount>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.plugin.version}</version>
                 <executions>
-                    <!-- 1. Embed a Java agent when tests are run -->
                     <execution>
                         <id>prepare-agent</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
                     </execution>
-                    <!-- 2. Generates a report (HTML/XML) in target/site/jacoco -->
                     <execution>
                         <id>report</id>
                         <phase>verify</phase>
@@ -171,7 +178,6 @@
                 </executions>
             </plugin>
 
-            <!-- Launching the console application: mvn compile exec:java -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -181,7 +187,6 @@
                 </configuration>
             </plugin>
 
-            <!-- Writes Main-Class to the JAR manifest -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -196,4 +201,34 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>local-jdk26</id>
+            <activation>
+                <property>
+                    <name>env.CI</name>
+                    <value>!true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <forkCount>0</forkCount>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <forkCount>0</forkCount>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

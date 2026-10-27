@@ -5,6 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.example.userservice.entity.User;
 import com.example.userservice.exception.UserNotFoundException;
@@ -29,10 +35,10 @@ import org.junit.jupiter.api.Test;
  * Unit tests for the console layer of {@link App}.
  *
  * <p>Each test creates its own {@link App} together with an isolated input
- * stream and a fake service, so the tests neither share mutable state nor
- * depend on the order in which they run. stdout/stderr are captured and
- * restored around every test. The database is never contacted: the database
- * lifecycle is injected as a pair of lambdas.
+ * stream and a Mockito double for {@link UserService}, so the tests neither
+ * share mutable state nor depend on the order in which they run. stdout/stderr
+ * are captured and restored around every test. The database is never
+ * contacted: the database lifecycle is injected as a pair of lambdas.
  */
 class AppTest {
 
@@ -43,7 +49,7 @@ class AppTest {
   private Scanner scanner;
   private ByteArrayOutputStream out;
   private ByteArrayOutputStream err;
-  private FakeUserService userService;
+  private UserService userService;
   private App app;
 
   @BeforeEach
@@ -55,7 +61,7 @@ class AppTest {
     System.setOut(new PrintStream(out, true, StandardCharsets.UTF_8));
     System.setErr(new PrintStream(err, true, StandardCharsets.UTF_8));
 
-    userService = new FakeUserService();
+    userService = mock(UserService.class);
     app = new App(scanner, userService);
   }
 
@@ -106,6 +112,10 @@ class AppTest {
   @Test
   void when_createUserCommandEntered_then_printsCreatedUserAndContinues()
       throws Exception {
+    User created = new User("Maria", "maria@example.com", 28);
+    when(userService.createUser(anyString(), anyString(), any()))
+        .thenReturn(created);
+
     input.feed("1\nMaria\nmaria@example.com\n28\n0\n");
 
     invoke(app, "runMenu");
@@ -114,12 +124,19 @@ class AppTest {
     assertTrue(output.contains("User created:"));
     assertTrue(output.contains("name='Maria'"));
     assertTrue(output.contains("Goodbye!"));
+    verify(userService).createUser("Maria", "maria@example.com", 28);
   }
 
   @Test
   void when_allMenuCommandsEntered_then_eachCommandIsDispatched()
       throws Exception {
-    userService.setUsers(List.of(new User("Ivan", "ivan@example.com", 30)));
+    User ivan = new User("Ivan", "ivan@example.com", 30);
+    User petr = new User("Petr", "petr@example.com", 25);
+    when(userService.showUser(anyLong())).thenReturn(ivan);
+    when(userService.listUsers()).thenReturn(List.of(ivan));
+    when(userService.updateUser(anyLong(), anyString(), anyString(), any()))
+        .thenReturn(petr);
+
     input.feed("2\n1\n3\n4\n2\nPetr\npetr@example.com\n25\n5\n3\n0\n");
 
     invoke(app, "runMenu");
@@ -138,6 +155,10 @@ class AppTest {
   @Test
   void when_createUserWithValidInput_then_printsCreatedUser()
       throws Exception {
+    User created = new User("Ivan Petrov", "ivan@example.com", 30);
+    when(userService.createUser("Ivan Petrov", "ivan@example.com", 30))
+        .thenReturn(created);
+
     input.feed("Ivan Petrov\nivan@example.com\n30\n");
 
     invoke(app, "createUser");
@@ -147,6 +168,7 @@ class AppTest {
     assertTrue(output.contains("name='Ivan Petrov'"));
     assertTrue(output.contains("email='ivan@example.com'"));
     assertTrue(output.contains("age=30"));
+    verify(userService).createUser("Ivan Petrov", "ivan@example.com", 30);
   }
 
   @Test
@@ -203,7 +225,8 @@ class AppTest {
 
   @Test
   void when_showAllUsersCommandSelected_then_printsUsers() throws Exception {
-    userService.setUsers(List.of(new User("Ivan", "ivan@example.com", 30)));
+    when(userService.listUsers())
+        .thenReturn(List.of(new User("Ivan", "ivan@example.com", 30)));
 
     invoke(app, "showAllUsers");
 
@@ -215,7 +238,7 @@ class AppTest {
   @Test
   void when_showAllUsersHasNoUsers_then_printsNoUsersFound()
       throws Exception {
-    userService.setUsers(List.of());
+    when(userService.listUsers()).thenReturn(List.of());
 
     invoke(app, "showAllUsers");
 
@@ -224,7 +247,8 @@ class AppTest {
 
   @Test
   void when_findUserByIdCommandSelected_then_printsUser() throws Exception {
-    userService.setUsers(List.of(new User("Ivan", "ivan@example.com", 30)));
+    User ivan = new User("Ivan", "ivan@example.com", 30);
+    when(userService.showUser(42L)).thenReturn(ivan);
     input.feed("42\n");
 
     invoke(app, "findUserById");
@@ -237,6 +261,9 @@ class AppTest {
   @Test
   void when_updateUserCommandSelected_then_printsUpdatedUser()
       throws Exception {
+    User updated = new User("Petr", "petr@example.com", 25);
+    when(userService.updateUser(7L, "Petr", "petr@example.com", 25))
+        .thenReturn(updated);
     input.feed("7\nPetr\npetr@example.com\n25\n");
 
     invoke(app, "updateUser");
@@ -254,6 +281,7 @@ class AppTest {
     invoke(app, "deleteUser");
 
     assertTrue(output().contains("User deleted: id=7"));
+    verify(userService).deleteUser(7L);
   }
 
   // ==================== main ====================
@@ -264,7 +292,8 @@ class AppTest {
   }
 
   @Test
-  void when_runSucceeds_then_printsGreetingAndGoodbye() throws Exception {
+  void when_mainRunsWithExitCommand_then_printsGreetingAndGoodbye()
+      throws Exception {
     input.feed("0\n");
 
     invoke(appWithDatabase(() -> null), "run");
@@ -297,7 +326,8 @@ class AppTest {
   @Test
   void when_commandThrowsIllegalArgumentException_then_printsErrorAndContinues()
       throws Exception {
-    userService.failCreateWith(new IllegalArgumentException("boom"));
+    when(userService.createUser(anyString(), anyString(), any()))
+        .thenThrow(new IllegalArgumentException("boom"));
     input.feed("1\nIvan\nivan@example.com\n30\n0\n");
 
     invoke(app, "runMenu");
@@ -310,7 +340,8 @@ class AppTest {
   @Test
   void when_commandThrowsDomainException_then_printsErrorAndContinues()
       throws Exception {
-    userService.failCreateWith(new UserNotFoundException("boom"));
+    when(userService.createUser(anyString(), anyString(), any()))
+        .thenThrow(new UserNotFoundException("boom"));
     input.feed("1\nIvan\nivan@example.com\n30\n0\n");
 
     invoke(app, "runMenu");
@@ -323,7 +354,8 @@ class AppTest {
   @Test
   void when_commandThrowsUnexpectedException_then_printsErrorAndContinues()
       throws Exception {
-    userService.failCreateWith(new RuntimeException("boom"));
+    when(userService.createUser(anyString(), anyString(), any()))
+        .thenThrow(new RuntimeException("boom"));
     input.feed("1\nIvan\nivan@example.com\n30\n0\n");
 
     invoke(app, "runMenu");
@@ -386,55 +418,6 @@ class AppTest {
     @Override
     public int read(byte[] buffer, int offset, int length) throws IOException {
       return delegate.read(buffer, offset, length);
-    }
-  }
-
-  /** A {@link UserService} double that never touches the database. */
-  private static final class FakeUserService extends UserService {
-
-    private List<User> users = List.of();
-    private RuntimeException createFailure;
-
-    FakeUserService() {
-      super(null);
-    }
-
-    void setUsers(List<User> users) {
-      this.users = users;
-    }
-
-    void failCreateWith(RuntimeException failure) {
-      this.createFailure = failure;
-    }
-
-    @Override
-    public User createUser(String name, String email, Integer age) {
-      if (createFailure != null) {
-        throw createFailure;
-      }
-      return new User(name, email, age);
-    }
-
-    @Override
-    public User showUser(Long id) {
-      if (users.isEmpty()) {
-        return new User("Ivan", "ivan@example.com", 30);
-      }
-      return users.get(0);
-    }
-
-    @Override
-    public List<User> listUsers() {
-      return users;
-    }
-
-    @Override
-    public User updateUser(Long id, String name, String email, Integer age) {
-      return new User(name, email, age);
-    }
-
-    @Override
-    public void deleteUser(Long id) {
     }
   }
 }
