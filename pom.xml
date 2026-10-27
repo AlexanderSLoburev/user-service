@@ -214,7 +214,7 @@
         <!--
             JDK 26 workaround: run tests in the Maven JVM instead of forking.
             JaCoCo can only collect data from a forked JVM, so this profile
-            disables the coverage report. Use JDK 21 (see README) for coverage.
+            disables the coverage report. Use JDK 21 for coverage.
         -->
         <profile>
             <id>local-jdk26</id>
