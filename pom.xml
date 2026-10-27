@@ -131,7 +131,6 @@
                 <version>${surefire.plugin.version}</version>
                 <configuration>
                     <excludedGroups>integration</excludedGroups>
-                    <forkCount>0</forkCount>
                 </configuration>
             </plugin>
 
@@ -145,7 +144,6 @@
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>
-                    <forkCount>0</forkCount>
                 </configuration>
                 <executions>
                     <!-- Run *IT tests in the integration-test phase -->
@@ -213,13 +211,15 @@
     </build>
 
     <profiles>
+        <!--
+            JDK 26 workaround: run tests in the Maven JVM instead of forking.
+            JaCoCo can only collect data from a forked JVM, so this profile
+            disables the coverage report. Use JDK 21 (see README) for coverage.
+        -->
         <profile>
             <id>local-jdk26</id>
             <activation>
-                <property>
-                    <name>env.CI</name>
-                    <value>!true</value>
-                </property>
+                <jdk>[26,)</jdk>
             </activation>
             <build>
                 <plugins>
