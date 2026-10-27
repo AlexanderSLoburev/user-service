@@ -131,11 +131,10 @@
                 <version>${surefire.plugin.version}</version>
                 <configuration>
                     <excludedGroups>integration</excludedGroups>
-                    <forkCount>0</forkCount>
                 </configuration>
             </plugin>
 
-            <!-- Integration tests: mvn verify (with Docker) -->
+            <!-- Integration tests: mvn integration-test / mvn verify (with Docker) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -145,12 +144,21 @@
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>
-                    <forkCount>0</forkCount>
                 </configuration>
                 <executions>
+                    <!-- Run *IT tests in the integration-test phase -->
                     <execution>
+                        <id>integration-tests</id>
+                        <phase>integration-test</phase>
                         <goals>
                             <goal>integration-test</goal>
+                        </goals>
+                    </execution>
+                    <!-- Fail the build if any integration test failed -->
+                    <execution>
+                        <id>verify-integration-tests</id>
+                        <phase>verify</phase>
+                        <goals>
                             <goal>verify</goal>
                         </goals>
                     </execution>
@@ -203,13 +211,15 @@
     </build>
 
     <profiles>
+        <!--
+            JDK 26 workaround: run tests in the Maven JVM instead of forking.
+            JaCoCo can only collect data from a forked JVM, so this profile
+            disables the coverage report. Use JDK 21 for coverage.
+        -->
         <profile>
             <id>local-jdk26</id>
             <activation>
-                <property>
-                    <name>env.CI</name>
-                    <value>!true</value>
-                </property>
+                <jdk>[26,)</jdk>
             </activation>
             <build>
                 <plugins>

@@ -10,13 +10,48 @@ import com.example.userservice.service.UserService;
 import com.example.userservice.util.HibernateUtil;
 import java.util.List;
 import java.util.Scanner;
+import java.util.function.Supplier;
+import org.hibernate.SessionFactory;
 
+/**
+ * Console entry point.
+ *
+ * <p>The application state (input scanner, service and database lifecycle) is
+ * kept in instance fields instead of static fields. This makes every instance
+ * isolated: tests never share a scanner, a service or a Hibernate factory.
+ */
 public class App {
 
-    private static final Scanner SCANNER = new Scanner(System.in);
-    private static UserService userService;
+    private final Scanner scanner;
+    private final Supplier<SessionFactory> database;
+    private final Runnable databaseShutdown;
+    private UserService userService;
+
+    /** Production constructor: reads stdin and uses the application database. */
+    public App(Scanner scanner) {
+        this(scanner, null, HibernateUtil::getSessionFactory,
+             HibernateUtil::shutdown);
+    }
+
+    /** Test constructor: the console layer runs against a fake service. */
+    App(Scanner scanner, UserService userService) {
+        this(scanner, userService, () -> null, () -> { });
+    }
+
+    /** Test constructor: lets a test control the database lifecycle. */
+    App(Scanner scanner, UserService userService,
+        Supplier<SessionFactory> database, Runnable databaseShutdown) {
+        this.scanner = scanner;
+        this.userService = userService;
+        this.database = database;
+        this.databaseShutdown = databaseShutdown;
+    }
 
     public static void main(String[] args) {
+        new App(new Scanner(System.in)).run();
+    }
+
+    private void run() {
         System.out.println("--- User Service ---");
 
         try {
@@ -25,17 +60,19 @@ public class App {
             }
             runMenu();
         } finally {
-            SCANNER.close();
-            HibernateUtil.shutdown();
+            scanner.close();
+            databaseShutdown.run();
             System.out.println("Application stopped.");
         }
     }
 
-    private static boolean initializeDatabase() {
+    private boolean initializeDatabase() {
         System.out.println("Connecting to the database...");
         try {
-            HibernateUtil.getSessionFactory();
-            userService = new UserService(new UserDaoImpl());
+            database.get();
+            if (userService == null) {
+                userService = new UserService(new UserDaoImpl());
+            }
             System.out.println("Database connection established.");
             return true;
         } catch (Exception e) {
@@ -46,11 +83,11 @@ public class App {
         }
     }
 
-    private static void runMenu() {
+    private void runMenu() {
         boolean running = true;
         while (running) {
             printMenu();
-            String choice = SCANNER.nextLine().trim();
+            String choice = scanner.nextLine().trim();
 
             try {
                 switch (choice) {
@@ -75,7 +112,7 @@ public class App {
         }
     }
 
-    private static void printMenu() {
+    private void printMenu() {
         System.out.println();
         System.out.println("--- Menu ---");
         System.out.println("1. Create user");
@@ -87,51 +124,51 @@ public class App {
         System.out.print("Choice: ");
     }
 
-    private static String readName() {
+    private String readName() {
         while (true) {
             System.out.print("Name: ");
             try {
-                return InputValidator.validateName(SCANNER.nextLine());
+                return InputValidator.validateName(scanner.nextLine());
             } catch (IllegalArgumentException e) {
                 System.out.println("ERROR " + e.getMessage());
             }
         }
     }
 
-    private static String readEmail() {
+    private String readEmail() {
         while (true) {
             System.out.print("Email: ");
             try {
-                return InputValidator.validateEmail(SCANNER.nextLine());
+                return InputValidator.validateEmail(scanner.nextLine());
             } catch (IllegalArgumentException e) {
                 System.out.println("ERROR " + e.getMessage());
             }
         }
     }
 
-    private static Integer readAge() {
+    private Integer readAge() {
         while (true) {
             System.out.print("Age (press Enter to skip): ");
             try {
-                return InputValidator.validateAge(SCANNER.nextLine());
+                return InputValidator.validateAge(scanner.nextLine());
             } catch (IllegalArgumentException e) {
                 System.out.println("ERROR " + e.getMessage());
             }
         }
     }
 
-    private static Long readId() {
+    private Long readId() {
         while (true) {
             System.out.print("Id: ");
             try {
-                return InputValidator.validateId(SCANNER.nextLine());
+                return InputValidator.validateId(scanner.nextLine());
             } catch (IllegalArgumentException e) {
                 System.out.println("ERROR " + e.getMessage());
             }
         }
     }
 
-    private static void createUser() {
+    private void createUser() {
         String name = readName();
         String email = readEmail();
         Integer age = readAge();
@@ -139,13 +176,13 @@ public class App {
         System.out.println("User created: " + user);
     }
 
-    private static void findUserById() {
+    private void findUserById() {
         Long id = readId();
         User user = userService.showUser(id);
         System.out.println("User: " + user);
     }
 
-    private static void showAllUsers() {
+    private void showAllUsers() {
         List<User> users = userService.listUsers();
         if (users.isEmpty()) {
             System.out.println("No users found.");
@@ -154,7 +191,7 @@ public class App {
         users.forEach(System.out::println);
     }
 
-    private static void updateUser() {
+    private void updateUser() {
         Long id = readId();
         String name = readName();
         String email = readEmail();
@@ -163,7 +200,7 @@ public class App {
         System.out.println("User updated: " + user);
     }
 
-    private static void deleteUser() {
+    private void deleteUser() {
         Long id = readId();
         userService.deleteUser(id);
         System.out.println("User deleted: id=" + id);

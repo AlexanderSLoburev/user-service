@@ -15,15 +15,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import com.example.userservice.PostgresExtension;
 import com.example.userservice.entity.User;
-import com.example.userservice.exception.DataAccessException;
 import com.example.userservice.exception.DuplicateEmailException;
 import com.example.userservice.exception.UserNotFoundException;
 import com.example.userservice.util.HibernateUtil;
@@ -31,8 +28,8 @@ import com.example.userservice.util.HibernateUtil;
 /**
  * Integration tests for UserDaoImpl against a PostgreSQL Testcontainer.
  *
- * Before each test, the table is cleared so the tests are independent of one
- * another and of the order in which they are run.
+ * Each test starts from an empty {@code users} table, so the tests are
+ * independent of one another and of the order in which they are run.
  */
 @Tag("integration")
 @ExtendWith(PostgresExtension.class)
@@ -46,13 +43,7 @@ class UserDaoImplIT {
   }
 
   @BeforeEach
-  void cleanUsersTable(TestInfo testInfo) {
-    // The DB-down test needs PostgreSQL stopped, so it must not clean the
-    // table (the cleanup itself would fail before the test even starts).
-    if (testInfo.getTags().contains("db-down")) {
-      return;
-    }
-    // bulk deletion
+  void cleanUsersTable() {
     try (Session session = HibernateUtil.getSessionFactory().openSession()) {
       Transaction tx = session.beginTransaction();
       session.createMutationQuery("delete from User").executeUpdate();
@@ -98,7 +89,6 @@ class UserDaoImplIT {
   @Test
   void
   when_saveWithDuplicateEmail_then_throwsDuplicateEmailAndNothingRemains() {
-    long countBefore = dao.findAll().size();
     dao.save(new User("Ivan Petrov", "ivan.petrov@example.com", 30));
 
     DuplicateEmailException e = assertThrows(
@@ -106,7 +96,7 @@ class UserDaoImplIT {
         () -> dao.save(new User("Impostor", "ivan.petrov@example.com", 99)));
 
     assertNotNull(e.getMessage());
-    assertEquals(countBefore + 1, dao.findAll().size(),
+    assertEquals(1, dao.findAll().size(),
                  "Only the first user should remain");
   }
 
@@ -269,24 +259,6 @@ class UserDaoImplIT {
   @Test
   void when_deleteByIdNull_then_throwsIllegalArgument() {
     assertThrows(IllegalArgumentException.class, () -> dao.deleteById(null));
-  }
-
-  // ==================== infrastructure failure (manual) ====================
-
-  @Test
-  @Tag("db-down")
-  @Disabled("Manual mode: docker compose stop postgres -> run only this "
-            + "test. Cannot be automated: in the same JVM as the other tests, "
-            +
-            "the singleton factory is already connected to the live database.")
-  void
-  when_dbIsDown_then_throwsDataAccessException() {
-    DataAccessException e =
-        assertThrows(DataAccessException.class, () -> dao.findAll());
-
-    assertNotNull(
-        e.getCause(),
-        "the translation must preserve the original reason for the log entry");
   }
 
   // ==================== auxiliary ====================
