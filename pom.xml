@@ -135,7 +135,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Integration tests: mvn verify (with Docker) -->
+            <!-- Integration tests: mvn integration-test / mvn verify (with Docker) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -148,9 +148,19 @@
                     <forkCount>0</forkCount>
                 </configuration>
                 <executions>
+                    <!-- Run *IT tests in the integration-test phase -->
                     <execution>
+                        <id>integration-tests</id>
+                        <phase>integration-test</phase>
                         <goals>
                             <goal>integration-test</goal>
+                        </goals>
+                    </execution>
+                    <!-- Fail the build if any integration test failed -->
+                    <execution>
+                        <id>verify-integration-tests</id>
+                        <phase>verify</phase>
+                        <goals>
                             <goal>verify</goal>
                         </goals>
                     </execution>
