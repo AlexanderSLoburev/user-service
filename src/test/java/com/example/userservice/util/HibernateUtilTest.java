@@ -13,7 +13,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import com.example.userservice.PostgresExtension;
 import org.hibernate.SessionFactory;
-import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -23,8 +23,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(PostgresExtension.class)
 class HibernateUtilTest {
 
-  @AfterAll
-  static void tearDown() {
+  @AfterEach
+  void tearDown() {
     HibernateUtil.shutdown();
   }
 
