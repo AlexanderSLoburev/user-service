@@ -1,5 +1,0 @@
-# Copy this file to db.properties and update it for your machine.
-# If you changed POSTGRES_PORT in .env, be sure to change the port here as well!
-hibernate.connection.url=jdbc:postgresql://localhost:5432/user_service
-hibernate.connection.username=postgres
-hibernate.connection.password=postgres
