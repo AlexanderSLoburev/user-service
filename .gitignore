@@ -4,3 +4,4 @@ target/
 src/main/resources/db.properties
 
 .idea/
+.vscode
