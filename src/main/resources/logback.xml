@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <!-- ==================== Appenders ==================== -->
+
+  <!-- File: full format, rotated daily, 7-day history -->
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/user-service.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/user-service.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+      <totalSizeCap>50MB</totalSizeCap>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <!-- ==================== Loggers ==================== -->
+
+  <!-- SQL queries of Hibernate -->
+  <logger name="org.hibernate.SQL" level="DEBUG"/>
+
+  <!--
+  <logger name="org.hibernate.orm.jdbc.bind" level="TRACE"/>
+  -->
+
+  <!-- Our code -->
+  <logger name="com.example.userservice" level="DEBUG"/>
+
+  <!-- ==================== Root ==================== -->
+
+  <root level="INFO">
+    <appender-ref ref="FILE"/>
+  </root>
+
+</configuration>

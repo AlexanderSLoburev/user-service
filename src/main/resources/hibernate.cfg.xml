@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+  <session-factory>
+
+    <!-- ========== Connection ========== -->
+    <property name="hibernate.connection.driver_class">org.postgresql.Driver</property>
+
+    <!-- ========== Schema ========== -->
+    <!-- The schema is created by 01-schema.sql; Hibernate only verifies it -->
+    <property name="hibernate.hbm2ddl.auto">validate</property>
+
+    <!-- ========== SQL in the logs ========== -->
+    <!-- show_sql=false: this writes to stdout, bypassing Logback.
+          The SQL will be logged via the org.hibernate.SQL logger -->
+    <property name="hibernate.show_sql">false</property>
+    <property name="hibernate.format_sql">true</property>
+    <property name="hibernate.highlight_sql">true</property>
+
+    <!-- ========== Connection Pool ========== -->
+    <property name="hibernate.connection.pool_size">5</property>
+
+    <!-- ========== Entity mappings ========== -->
+    <mapping class="com.example.userservice.entity.User"/>
+
+  </session-factory>
+</hibernate-configuration>
