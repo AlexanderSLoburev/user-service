@@ -1,91 +1,83 @@
 package com.example.userservice.repository;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.userservice.entity.User;
-import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
-@DataJpaTest
 @Testcontainers
+@DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class UserRepositoryIT {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18")
-            .withInitScript("01-schema.sql");
+  // The container closes the Testcontainers extension
+  // (@Testcontainers/@Container) in afterAll
+  @SuppressWarnings("resource")
+  @Container
+  @ServiceConnection
+  static final PostgreSQLContainer postgres =
+      new PostgreSQLContainer("postgres:17-alpine")
+          .withInitScript("01-schema.sql");
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
+  @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+  @Test
+  void when_save_new_user_then_id_and_created_at_are_assigned() {
+    User saved = userRepository.save(new User("John", "john@example.com", 30));
 
-    @Test
-    void when_saveNewUser_then_idAndCreatedAtAreAssigned() {
-        User user = new User("Ivan", "ivan@example.com", 30);
+    assertThat(saved.getId()).isNotNull();
+    assertThat(saved.getCreatedAt()).isNotNull();
+  }
 
-        assertNotNull(userRepository.save(user).getId());
-        assertNotNull(user.getCreatedAt());
-    }
+  @Test
+  void when_user_saved_then_exists_by_email_returns_true() {
+    userRepository.save(new User("John", "john@example.com", 30));
 
-    @Test
-    void when_saveNewUser_then_createdAtIsCloseToNow() {
-        User user = new User("Ivan", "ivan@example.com", 30);
-        userRepository.save(user);
+    assertThat(userRepository.existsByEmail("john@example.com")).isTrue();
+  }
 
-        assertTrue(java.time.Duration.between(user.getCreatedAt(), LocalDateTime.now())
-                .abs().toMinutes() < 1);
-    }
+  @Test
+  void when_email_unknown_then_exists_by_email_returns_false() {
+    assertThat(userRepository.existsByEmail("nobody@example.com")).isFalse();
+  }
 
-    @Test
-    void when_findByEmailExisting_then_returnsUser() {
-        userRepository.save(new User("Ivan", "ivan@example.com", 30));
+  @Test
+  void
+  when_user_keeps_own_email_then_exists_by_email_and_id_not_returns_false() {
+    User saved = userRepository.save(new User("John", "john@example.com", 30));
 
-        var found = userRepository.findByEmail("ivan@example.com");
+    assertThat(
+        userRepository.existsByEmailAndIdNot("john@example.com", saved.getId()))
+        .isFalse();
+  }
 
-        assertTrue(found.isPresent());
-        assertEquals("Ivan", found.get().getName());
-    }
+  @Test
+  void
+  when_email_owned_by_other_user_then_exists_by_email_and_id_not_returns_true() {
+    User john = userRepository.save(new User("John", "john@example.com", 30));
+    userRepository.save(new User("Alice", "alice@example.com", 25));
 
-    @Test
-    void when_findByEmailNonexistent_then_returnsEmpty() {
-        assertTrue(userRepository.findByEmail("nobody@example.com").isEmpty());
-    }
+    assertThat(
+        userRepository.existsByEmailAndIdNot("alice@example.com", john.getId()))
+        .isTrue();
+  }
 
-    @Test
-    void when_existsByEmailExisting_then_returnsTrue() {
-        userRepository.save(new User("Ivan", "ivan@example.com", 30));
+  @Test
+  void when_save_duplicate_email_then_data_integrity_violation_is_thrown() {
+    userRepository.saveAndFlush(new User("John", "john@example.com", 30));
 
-        assertTrue(userRepository.existsByEmail("ivan@example.com"));
-    }
-
-    @Test
-    void when_existsByEmailNonexistent_then_returnsFalse() {
-        assertTrue(!userRepository.existsByEmail("nobody@example.com"));
-    }
-
-    @Test
-    void when_saveTwoUsersWithSameEmail_then_throwsDataIntegrityViolation() {
-        userRepository.saveAndFlush(new User("Ivan", "ivan@example.com", 30));
-
-        assertThrows(DataIntegrityViolationException.class,
-                () -> userRepository.saveAndFlush(new User("Petr", "ivan@example.com", 25)));
-    }
+    assertThatThrownBy(()
+                           -> userRepository.saveAndFlush(
+                               new User("John Clone", "john@example.com", 31)))
+        .isInstanceOf(DataIntegrityViolationException.class);
+  }
 }
