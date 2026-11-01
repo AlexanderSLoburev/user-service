@@ -1,7 +1,6 @@
 package com.example.userservice.controller;
 
 import com.example.userservice.dto.ErrorResponse;
-import com.example.userservice.exception.DataAccessException;
 import com.example.userservice.exception.DuplicateEmailException;
 import com.example.userservice.exception.UserNotFoundException;
 import java.util.List;

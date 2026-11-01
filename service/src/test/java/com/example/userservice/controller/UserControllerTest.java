@@ -2,7 +2,6 @@ package com.example.userservice.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -12,8 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.userservice.dto.UserCreateRequest;
 import com.example.userservice.dto.UserResponse;
-import com.example.userservice.entity.User;
+import com.example.userservice.dto.UserUpdateRequest;
 import com.example.userservice.exception.DuplicateEmailException;
 import com.example.userservice.exception.UserNotFoundException;
 import com.example.userservice.service.UserService;
@@ -35,13 +35,13 @@ class UserControllerTest {
     @MockitoBean
     private UserService userService;
 
-    private User user() {
-        return new User("Ivan", "ivan@example.com", 30);
+    private UserResponse response() {
+        return new UserResponse(1L, "Ivan", "ivan@example.com", 30, LocalDateTime.now());
     }
 
     @Test
     void when_list_then_returns200AndJsonArray() throws Exception {
-        when(userService.listUsers()).thenReturn(List.of(user()));
+        when(userService.findAll()).thenReturn(List.of(response()));
 
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isOk())
@@ -50,7 +50,7 @@ class UserControllerTest {
 
     @Test
     void when_getOne_then_returns200AndJson() throws Exception {
-        when(userService.showUser(1L)).thenReturn(user());
+        when(userService.findById(1L)).thenReturn(response());
 
         mockMvc.perform(get("/api/users/1"))
                 .andExpect(status().isOk())
@@ -59,7 +59,7 @@ class UserControllerTest {
 
     @Test
     void when_create_then_returns201WithLocationAndBody() throws Exception {
-        when(userService.createUser(anyString(), anyString(), any())).thenReturn(user());
+        when(userService.create(any(UserCreateRequest.class))).thenReturn(response());
 
         mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -71,7 +71,7 @@ class UserControllerTest {
 
     @Test
     void when_update_then_returns200() throws Exception {
-        when(userService.updateUser(anyLong(), anyString(), anyString(), any())).thenReturn(user());
+        when(userService.update(anyLong(), any(UserUpdateRequest.class))).thenReturn(response());
 
         mockMvc.perform(put("/api/users/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -87,7 +87,7 @@ class UserControllerTest {
 
     @Test
     void when_getOne_userNotFound_then_returns404() throws Exception {
-        when(userService.showUser(99L)).thenThrow(new UserNotFoundException(99L));
+        when(userService.findById(99L)).thenThrow(new UserNotFoundException(99L));
 
         mockMvc.perform(get("/api/users/99"))
                 .andExpect(status().isNotFound())
@@ -96,7 +96,7 @@ class UserControllerTest {
 
     @Test
     void when_create_duplicateEmail_then_returns409() throws Exception {
-        when(userService.createUser(anyString(), anyString(), any()))
+        when(userService.create(any(UserCreateRequest.class)))
                 .thenThrow(new DuplicateEmailException("ivan@example.com"));
 
         mockMvc.perform(post("/api/users")

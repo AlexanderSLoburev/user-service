@@ -1,7 +1,8 @@
 package com.example.userservice.controller;
 
-import com.example.userservice.dto.UserRequest;
+import com.example.userservice.dto.UserCreateRequest;
 import com.example.userservice.dto.UserResponse;
+import com.example.userservice.dto.UserUpdateRequest;
 import com.example.userservice.service.UserService;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -29,36 +30,32 @@ public class UserController {
 
     @GetMapping
     public List<UserResponse> list() {
-        return userService.listUsers().stream().map(this::toResponse).toList();
+        return userService.findAll();
     }
 
     @GetMapping("/{id}")
     public UserResponse getOne(@PathVariable Long id) {
-        return toResponse(userService.showUser(id));
+        return userService.findById(id);
     }
 
     @PostMapping
-    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request) {
-        var created = userService.createUser(request.name(), request.email(), request.age());
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserCreateRequest request) {
+        UserResponse created = userService.create(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
-                .buildAndExpand(created.getId())
+                .buildAndExpand(created.id())
                 .toUri();
-        return ResponseEntity.created(location).body(toResponse(created));
+        return ResponseEntity.created(location).body(created);
     }
 
     @PutMapping("/{id}")
-    public UserResponse update(@PathVariable Long id, @Valid @RequestBody UserRequest request) {
-        return toResponse(userService.updateUser(id, request.name(), request.email(), request.age()));
+    public UserResponse update(@PathVariable Long id, @Valid @RequestBody UserUpdateRequest request) {
+        return userService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        userService.deleteUser(id);
+        userService.delete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    private UserResponse toResponse(com.example.userservice.entity.User user) {
-        return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getAge(), user.getCreatedAt());
     }
 }
