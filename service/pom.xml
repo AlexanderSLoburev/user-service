@@ -6,9 +6,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.example</groupId>
-        <artifactId>user-service</artifactId>
-        <version>1.0.0</version>
+      <groupId>com.example</groupId>
+      <artifactId>user-service</artifactId>
+      <version>1.0.0</version>
     </parent>
 
     <artifactId>user-service-service</artifactId>
@@ -46,6 +46,12 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Web MVC + Tomcat + Jackson 3 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+
         <!-- ==================== test ==================== -->
 
         <!-- JUnit (Jupiter), Mockito, AssertJ, JsonPath, Spring Test + MockMvc -->
@@ -79,6 +85,14 @@
             <artifactId>testcontainers-postgresql</artifactId>
             <scope>test</scope>
         </dependency>
+        
+        <!-- @WebMvcTest, @AutoConfigureMockMvc, MockMvc,
+     + junit/mockito/assertj/json-path, + RestTestClient -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 
@@ -103,27 +117,28 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.13</version>
                 <executions>
                     <execution>
-                        <id>prepare-agent</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
+                        <id>prepare-unit-tests</id>
+                        <goals><goal>prepare-agent</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>prepare-integration-tests</id>
+                        <goals><goal>prepare-agent-integration</goal></goals>
+                        <configuration>
+                            <!--both agents write to the same file: check will see coverage unit + IT -->
+                            <destFile>${project.build.directory}/jacoco.exec</destFile>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>report</id>
                         <phase>verify</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
+                        <goals><goal>report</goal></goals>
                     </execution>
                     <execution>
-                        <id>check</id>
+                        <id>check-coverage</id>
                         <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
+                        <goals><goal>check</goal></goals>
                         <configuration>
                             <rules>
                                 <rule>

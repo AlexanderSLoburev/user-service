@@ -26,13 +26,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 
-
 /**
  * Unit tests for UserService: no database, no Docker, UserRepository is a mock.
  *
  * Isolation without @BeforeEach: MockitoExtension creates a FRESH mock for
  * every test, and strict stubs (the default) fail any test with an unused stub
- * — state leakage between tests is impossible by design.
+ * - state leakage between tests is impossible by design.
  */
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -132,6 +131,7 @@ class UserServiceTest {
   }
 
   @Test
+  @SuppressWarnings("null")
   void when_findAll_called_then_returnsMappedListInOrder() {
     when(userRepository.findAll(any(Sort.class)))
         .thenReturn(List.of(user(1L, "Alice", "alice@example.com", 25),
