@@ -25,8 +25,8 @@ class UserRepositoryIT {
   @Container
   @ServiceConnection
   static final PostgreSQLContainer postgres =
-      new PostgreSQLContainer("postgres:17-alpine")
-          .withInitScript("01-schema.sql");
+          new PostgreSQLContainer("postgres:17-alpine")
+                  .withInitScript("01-schema.sql");
 
   @Autowired private UserRepository userRepository;
 
