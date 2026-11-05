@@ -21,11 +21,11 @@
   <packaging>pom</packaging>
 
   <name>user-service</name>
-  <description>REST service for user management: Spring Boot + Data JPA + PostgreSQL, with a lightweight CLI client</description>
+  <description>REST service for user management: Spring Boot + Data JPA + PostgreSQL</description>
 
   <modules>
     <module>service</module>
-    <module>cli</module>
+    <module>notification-service</module>
   </modules>
 
   <properties>
