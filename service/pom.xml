@@ -94,6 +94,12 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- Publishing events: KafkaTemplate + producer auto-configuration -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-kafka</artifactId>
+    </dependency>
+
   </dependencies>
 
   <build>

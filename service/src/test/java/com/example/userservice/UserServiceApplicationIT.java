@@ -1,5 +1,7 @@
 package com.example.userservice;
 
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -7,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.userservice.event.UserEventPublisher;
 import com.example.userservice.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,12 +18,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.ObjectMapper;
-
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -39,6 +42,9 @@ class UserServiceApplicationIT {
   @Autowired private ObjectMapper objectMapper;
 
   @Autowired private UserRepository userRepository;
+
+  @MockitoBean private UserEventPublisher eventPublisher;
+
   @BeforeEach
   void cleanDatabase() {
     userRepository.deleteAll();
@@ -58,6 +64,8 @@ class UserServiceApplicationIT {
         .andExpect(jsonPath("$.email").value("john@example.com"))
         .andExpect(jsonPath("$.age").value(30))
         .andExpect(jsonPath("$.createdAt").isNotEmpty());
+
+    verify(eventPublisher).publishCreated("john@example.com");
   }
 
   @Test
@@ -119,6 +127,8 @@ class UserServiceApplicationIT {
                                 {"name": "John Clone", "email": "john@example.com", "age": 40}
                                 """))
         .andExpect(status().isConflict());
+
+    verify(eventPublisher, times(1)).publishCreated("john@example.com");
   }
 
   @Test
@@ -170,6 +180,8 @@ class UserServiceApplicationIT {
 
     mockMvc.perform(delete("/api/users/{id}", id))
         .andExpect(status().isNotFound());
+
+    verify(eventPublisher).publishDeleted("john@example.com");
   }
 
   private long createUser(String email) throws Exception {
