@@ -10,6 +10,7 @@ import com.example.userservice.dto.UserCreateRequest;
 import com.example.userservice.dto.UserResponse;
 import com.example.userservice.dto.UserUpdateRequest;
 import com.example.userservice.entity.User;
+import com.example.userservice.event.UserEventPublisher;
 import com.example.userservice.exception.DuplicateEmailException;
 import com.example.userservice.exception.UserNotFoundException;
 import com.example.userservice.repository.UserRepository;
@@ -41,6 +42,8 @@ class UserServiceTest {
 
   @Mock private UserRepository userRepository;
 
+  @Mock private UserEventPublisher publisher;
+
   @InjectMocks private UserService userService;
 
   // ==================== create ====================
@@ -59,6 +62,7 @@ class UserServiceTest {
     assertThat(response.email()).isEqualTo("john@example.com");
     assertThat(response.age()).isEqualTo(30);
     assertThat(response.createdAt()).isEqualTo(CREATED_AT);
+    verify(publisher).publishCreated("john@example.com");
   }
 
   @Test
@@ -90,13 +94,14 @@ class UserServiceTest {
 
     verify(userRepository, never())
         .saveAndFlush(any(User.class)); // pre-check prevented the INSERT
+    verifyNoInteractions(publisher);
   }
 
   @Test
   void when_create_repoThrowsDataIntegrityViolation_then_propagates() {
     // pre-check race path: the constraint fired in the DB — the service neither
     // swallows nor converts it; translating it to 409 is the
-    // @RestControllerAdvice's job (task 4)
+    // @RestControllerAdvice's job
     when(userRepository.existsByEmail("john@example.com")).thenReturn(false);
     when(userRepository.saveAndFlush(any(User.class)))
         .thenThrow(new DataIntegrityViolationException("uq_users_email"));
@@ -105,6 +110,7 @@ class UserServiceTest {
                            -> userService.create(new UserCreateRequest(
                                "John", "john@example.com", 30)))
         .isInstanceOf(DataIntegrityViolationException.class);
+    verifyNoInteractions(publisher);
   }
 
   // ==================== findById / findAll ====================
@@ -156,17 +162,13 @@ class UserServiceTest {
     UserResponse response = userService.update(
         1L, new UserUpdateRequest("John P.", "john.p@example.com", 31));
 
-    assertThat(loaded.getName())
-        .isEqualTo("John P."); // find + modify: the entity from
-    assertThat(loaded.getEmail())
-        .isEqualTo("john.p@example.com"); // findById is mutated
+    assertThat(loaded.getName()).isEqualTo("John P.");
+    assertThat(loaded.getEmail()).isEqualTo("john.p@example.com");
     assertThat(loaded.getAge()).isEqualTo(31);
-    assertThat(response.name())
-        .isEqualTo("John P."); // response built from the same entity
-    assertThat(response.createdAt())
-        .isEqualTo(CREATED_AT); // createdAt untouched
-    verify(userRepository, never())
-        .save(any(User.class)); // UPDATE will be written by dirty checking
+    assertThat(response.name()).isEqualTo("John P.");
+    assertThat(response.createdAt()).isEqualTo(CREATED_AT);
+    verify(userRepository, never()).save(any(User.class));
+    verifyNoInteractions(publisher);
   }
 
   @Test
@@ -182,6 +184,7 @@ class UserServiceTest {
 
     verify(userRepository, never())
         .existsByEmailAndIdNot(anyString(), anyLong());
+    verifyNoInteractions(publisher);
   }
 
   @Test
@@ -215,31 +218,36 @@ class UserServiceTest {
         .isInstanceOf(DuplicateEmailException.class)
         .hasMessageContaining("alice@example.com");
 
-    assertThat(loaded.getName()).isEqualTo("John"); // entity untouched:
-    assertThat(loaded.getEmail())
-        .isEqualTo("john@example.com"); // pre-check fired BEFORE modify
+    assertThat(loaded.getName()).isEqualTo("John");
+    assertThat(loaded.getEmail()).isEqualTo("john@example.com");
+    verifyNoInteractions(publisher);
   }
 
   // ==================== delete ====================
 
+  // CHANGED: contract since task 3 — delete loads the user (the event needs
+  // the email) and removes the loaded entity; no more existsById/deleteById
   @Test
-  void when_delete_existing_then_delegatesToRepo() {
-    when(userRepository.existsById(1L)).thenReturn(true);
+  void when_delete_existing_then_deletesLoadedUser_and_publishesDeletedEvent() {
+    User john = user(1L, "John", "john@example.com", 30);
+    when(userRepository.findById(1L)).thenReturn(Optional.of(john));
 
     userService.delete(1L);
 
-    verify(userRepository).deleteById(1L);
+    verify(userRepository).delete(john);
+    verify(publisher).publishDeleted("john@example.com");
   }
 
   @Test
-  void when_delete_missing_then_UserNotFoundException() {
-    when(userRepository.existsById(42L)).thenReturn(false);
+  void when_delete_missing_then_UserNotFoundException_and_noEvent() {
+    when(userRepository.findById(42L)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> userService.delete(42L))
         .isInstanceOf(UserNotFoundException.class)
         .hasMessageContaining("42");
 
-    verify(userRepository, never()).deleteById(anyLong());
+    verify(userRepository, never()).delete(any(User.class));
+    verifyNoInteractions(publisher);
   }
 
   // ==================== helpers ====================
