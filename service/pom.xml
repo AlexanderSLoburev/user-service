@@ -94,6 +94,12 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Publishing events: KafkaTemplate + producer auto-configuration -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-kafka</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -118,10 +124,6 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.16</version>
-                <configuration>
-                    <destFile>C:/jacoco/jacoco.exec</destFile>
-                    <dataFile>C:/jacoco/jacoco.exec</dataFile>
-                </configuration>
                 <executions>
                     <execution>
                         <id>prepare-unit-tests</id>
@@ -131,8 +133,8 @@
                         <id>prepare-integration-tests</id>
                         <goals><goal>prepare-agent-integration</goal></goals>
                         <configuration>
-                            <!-- both agents write to the same file: check will see coverage unit + IT -->
-                            <destFile>C:/jacoco/jacoco.exec</destFile>
+                            <!--both agents write to the same file: check will see coverage unit + IT -->
+                            <destFile>${project.build.directory}/jacoco.exec</destFile>
                         </configuration>
                     </execution>
                     <execution>
