@@ -1,18 +1,18 @@
 package com.example.notifications.service;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.example.notifications.config.NotificationProperties;
+import com.example.notifications.notification.MessageComposer;
+import com.example.notifications.notification.Operation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class NotificationServiceTest {
 
@@ -28,13 +28,16 @@ class NotificationServiceTest {
                 "Аккаунт создан",
                 "Аккаунт удалён"
         );
-        MessageComposer composer = new MessageComposer(props);
+        MessageComposer composer = new MessageComposer(
+                "your-site.com",
+                "Аккаунт создан",
+                "Аккаунт удалён");
         service = new NotificationService(mailSender, composer, props);
     }
 
     @Test
     void when_created_then_sendsEmailWithCreatedBody() {
-        service.send("CREATED", "ivan@example.com");
+        service.send(Operation.CREATED, "ivan@example.com");
 
         ArgumentCaptor<SimpleMailMessage> captor =
                 ArgumentCaptor.forClass(SimpleMailMessage.class);
@@ -50,7 +53,7 @@ class NotificationServiceTest {
 
     @Test
     void when_deleted_then_sendsEmailWithDeletedBody() {
-        service.send("DELETED", "ivan@example.com");
+        service.send(Operation.DELETED, "ivan@example.com");
 
         ArgumentCaptor<SimpleMailMessage> captor =
                 ArgumentCaptor.forClass(SimpleMailMessage.class);
@@ -62,12 +65,5 @@ class NotificationServiceTest {
         assertThat(msg.getSubject()).isEqualTo("Аккаунт удалён");
         assertThat(msg.getText()).isEqualTo(
                 "Здравствуйте! Ваш аккаунт был удалён.");
-    }
-
-    @Test
-    void when_unknownOperation_then_throwsIllegalArgument() {
-        org.junit.jupiter.api.Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> service.send("UNKNOWN", "ivan@example.com"));
     }
 }
