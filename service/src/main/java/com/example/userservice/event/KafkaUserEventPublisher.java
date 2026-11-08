@@ -38,7 +38,8 @@ public class KafkaUserEventPublisher implements UserEventPublisher {
     kafkaTemplate.send(topic, email, new UserEvent(operation, email))
         .whenComplete((result, failure) -> {
           if (failure != null) {
-            // доставка не удалась — логируем и НЕ роняем операцию пользователя
+            // Delivery failed — log the error and DO NOT abort the user's
+            // operation
             log.error("Failed to publish {} event for {}", operation, email,
                       failure);
           }
