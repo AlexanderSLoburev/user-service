@@ -1,6 +1,9 @@
 package com.example.notifications.service;
 
 import com.example.notifications.config.NotificationProperties;
+import com.example.notifications.notification.MessageComposer;
+import com.example.notifications.notification.MessageComposer.ComposedMessage;
+import com.example.notifications.notification.Operation;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -20,12 +23,14 @@ public class NotificationService {
         this.props = props;
     }
 
-    public void send(String operation, String email) {
+    public void send(Operation operation, String email) {
+        ComposedMessage composed = composer.compose(operation);
+
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(props.from());
         message.setTo(email);
-        message.setSubject(composer.subjectFor(operation));
-        message.setText(composer.bodyFor(operation, email));
+        message.setSubject(composed.subject());
+        message.setText(composed.text());
         mailSender.send(message);
     }
 }
