@@ -15,30 +15,28 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class UserEventListenerTest {
 
-  @Mock private NotificationService notificationService;
+    @Mock private NotificationService notificationService;
 
-  @InjectMocks private UserEventListener listener;
+    @InjectMocks private UserEventListener listener;
 
-  @Test
-  void when_event_is_created_then_notification_sent() {
-    listener.onEvent(new UserEvent("CREATED", "john@example.com"));
+    @Test
+    void when_event_is_created_then_notification_sent() {
+        listener.onEvent(new UserEvent("CREATED", "john@example.com"));
 
-    verify(notificationService)
-        .send(Operation.CREATED.toString(), "john@example.com");
-  }
+        verify(notificationService).send(Operation.CREATED, "john@example.com");
+    }
 
-  @Test
-  void when_event_is_deleted_then_notification_sent() {
-    listener.onEvent(new UserEvent("DELETED", "john@example.com"));
+    @Test
+    void when_event_is_deleted_then_notification_sent() {
+        listener.onEvent(new UserEvent("DELETED", "john@example.com"));
 
-    verify(notificationService)
-        .send(Operation.DELETED.toString(), "john@example.com");
-  }
+        verify(notificationService).send(Operation.DELETED, "john@example.com");
+    }
 
-  @Test
-  void when_operation_is_unknown_then_event_skipped() {
-    listener.onEvent(new UserEvent("UPDATED", "john@example.com"));
+    @Test
+    void when_operation_is_unknown_then_event_skipped() {
+        listener.onEvent(new UserEvent("UPDATED", "john@example.com"));
 
-    verifyNoInteractions(notificationService);
-  }
+        verifyNoInteractions(notificationService);
+    }
 }
