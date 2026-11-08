@@ -4,6 +4,7 @@ import com.example.userservice.dto.UserCreateRequest;
 import com.example.userservice.dto.UserResponse;
 import com.example.userservice.dto.UserUpdateRequest;
 import com.example.userservice.entity.User;
+import com.example.userservice.event.UserEventPublisher;
 import com.example.userservice.exception.DuplicateEmailException;
 import com.example.userservice.exception.UserNotFoundException;
 import com.example.userservice.repository.UserRepository;
@@ -17,9 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
   private final UserRepository userRepository;
+  private final UserEventPublisher eventPublisher;
 
-  public UserService(UserRepository userRepository) {
+  public UserService(UserRepository userRepository,
+                     UserEventPublisher eventPublisher) {
     this.userRepository = userRepository;
+    this.eventPublisher = eventPublisher;
   }
 
   public List<UserResponse> findAll() {
@@ -42,6 +46,7 @@ public class UserService {
     }
     User saved = userRepository.saveAndFlush(
         new User(request.name(), request.email(), request.age()));
+    eventPublisher.publishCreated(saved.getEmail());
 
     return UserResponse.from(saved);
   }
@@ -63,9 +68,9 @@ public class UserService {
 
   @Transactional
   public void delete(Long id) {
-    if (!userRepository.existsById(id)) {
-      throw new UserNotFoundException(id);
-    }
-    userRepository.deleteById(id);
+    User user = userRepository.findById(id).orElseThrow(
+        () -> new UserNotFoundException(id));
+    userRepository.delete(user);
+    eventPublisher.publishDeleted(user.getEmail());
   }
 }

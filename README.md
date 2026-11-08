@@ -1,44 +1,114 @@
 # User Service
 
-REST-сервис для создания и управления пользователями. Модуль принимает JSON-запросы, проверяет входные данные, выполняет бизнес-операции и сохраняет пользователей в PostgreSQL.
+Учебный проект на Java: REST API для управления пользователями и отдельный сервис email-уведомлений. Сервисы обмениваются событиями через Kafka; PostgreSQL хранит пользователей, Mailpit принимает письма в локальной среде разработки.
 
-## Как работает приложение
+## Архитектура
 
-Сервис построен послойно:
+```text
+Клиент
+  │ HTTP :8080
+  ▼
+User Service ───────► PostgreSQL :5432
+  │ CREATED / DELETED
+  ▼
+Kafka (user-events) ───────► Notification Service ───────► Mailpit :1025
+                                    │ HTTP :8081               └─ UI :8025
+```
 
-1. `UserController` принимает HTTP-запросы по адресу `/api/users` и преобразует их в вызовы сервиса.
-2. DTO `UserCreateRequest` и `UserUpdateRequest` проверяются Bean Validation: имя и email обязательны, email должен иметь корректный формат, возраст должен быть положительным числом.
-3. `UserService` выполняет операции с пользователями, проверяет уникальность email и преобразует сущности в `UserResponse`.
-4. `UserRepository` на базе Spring Data JPA обращается к PostgreSQL. Идентификатор пользователя генерируется базой данных, а `createdAt` устанавливается при создании записи.
-5. `GlobalExceptionHandler` формирует единый JSON-ответ для ошибок валидации, отсутствующих пользователей и конфликтов данных.
+- **`service` — User Service.** Spring MVC принимает запросы на `/api/users`; DTO проверяются Bean Validation, бизнес-логика находится в `UserService`, а `UserRepository` на Spring Data JPA работает с PostgreSQL. `GlobalExceptionHandler` формирует JSON-ответы об ошибках.
+- **`notification-service` — Notification Service.** Получает события `CREATED` и `DELETED` из Kafka, формирует письмо и отправляет его по SMTP. Кроме того, сервис предоставляет HTTP API для прямой отправки уведомлений.
+- **PostgreSQL** хранит данные в таблице `users`. SQL-схема находится в `docker/init/01-schema.sql`. Hibernate настроен на `ddl-auto: validate`: при запуске проверяет схему, но не создаёт и не изменяет её.
+- **Kafka** передаёт между сервисами события с операцией и email пользователя. Создание и удаление пользователя публикуют события; обновление пользователя уведомление не отправляет.
+- **Mailpit** — локальный SMTP-сервер для разработки: письма можно просматривать в веб-интерфейсе, не отправляя их реальным адресатам.
 
-В таблице `users` email уникален. Hibernate проверяет соответствие сущностей существующей схеме (`ddl-auto: validate`), но не создаёт и не изменяет её.
+Проект собран как Maven multi-module:
 
-## Технологический стек
+```text
+.
+├── service/                 # REST API пользователей
+├── notification-service/    # обработка и отправка уведомлений
+├── docker/
+│   └── init/01-schema.sql   # начальная схема PostgreSQL
+├── docker-compose.yml       # PostgreSQL, Kafka, Mailpit
+└── pom.xml                  # родительский Maven-проект
+```
 
-- Java 21;
-- Spring Boot 4.1.2, Spring MVC и встроенный Tomcat;
-- Spring Data JPA и Hibernate;
-- PostgreSQL;
-- Jakarta Bean Validation;
-- Maven;
-- JUnit Jupiter, Mockito, AssertJ и Spring MockMvc;
-- Testcontainers для интеграционных тестов с PostgreSQL;
-- JaCoCo для сбора покрытия кода.
+## Технологии
+
+- Java 21, Maven;
+- Spring Boot 4.1.2, Spring MVC, Spring Data JPA, Jakarta Bean Validation;
+- PostgreSQL и Kafka;
+- SMTP / Mailpit;
+- JUnit, Mockito, Spring MockMvc и Testcontainers;
+- JaCoCo для проверки покрытия модуля `service`.
+
+## Запуск локально
+
+Необходимы JDK 21, Maven и Docker с Docker Compose.
+
+### 1. Запустить инфраструктуру
+
+Из корня проекта в PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up -d
+```
+
+При необходимости измените параметры PostgreSQL в `.env` перед запуском. Compose поднимает:
+
+| Компонент | Адрес | Назначение |
+|---|---|---|
+| PostgreSQL | `localhost:5432` | База `user_service` |
+| Kafka | `localhost:9092` | Топик `user-events` |
+| Mailpit SMTP | `localhost:1025` | Приём тестовых писем |
+| Mailpit Web UI | <http://localhost:8025> | Просмотр писем |
+
+Скрипт схемы выполняется PostgreSQL автоматически только при первом запуске с пустым томом данных.
+
+### 2. Запустить User Service
+
+В отдельном окне PowerShell из корня проекта:
+
+```powershell
+$env:DB_URL = "jdbc:postgresql://localhost:5432/user_service"
+$env:DB_USER = "postgres"
+$env:DB_PASSWORD = "postgres"
+mvn -pl service spring-boot:run
+```
+
+Укажите `DB_USER` и `DB_PASSWORD`, соответствующие значениям `POSTGRES_USER` и `POSTGRES_PASSWORD` в `.env`. API будет доступен на <http://localhost:8080>.
+
+### 3. Запустить Notification Service
+
+В другом окне PowerShell из корня проекта:
+
+```powershell
+$env:KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
+$env:SMTP_HOST = "localhost"
+$env:SMTP_PORT = "1025"
+mvn -pl notification-service spring-boot:run
+```
+
+HTTP API уведомлений будет доступен на <http://localhost:8081>. Настройки подключения также можно переопределять переменными окружения: `KAFKA_BOOTSTRAP_SERVERS`, `SMTP_HOST`, `SMTP_PORT`, `NOTIFICATION_SITE_NAME` и `NOTIFICATION_FROM`.
+
+Чтобы остановить инфраструктуру, выполните `docker compose down`. Данные PostgreSQL сохраняются в Docker-томе; удаляйте том отдельно, только если хотите сбросить локальную базу.
 
 ## REST API
 
-Все маршруты доступны по базовому адресу `/api/users`. Тела запросов и ответов передаются в формате JSON.
+### Пользователи
 
-| Метод | Путь | Назначение | Успешный ответ |
-|---|---|---|---|
-| `GET` | `/api/users` | Получить всех пользователей в порядке возрастания ID | `200 OK`, массив пользователей |
-| `GET` | `/api/users/{id}` | Получить пользователя по ID | `200 OK`, пользователь |
-| `POST` | `/api/users` | Создать пользователя | `201 Created`, пользователь и заголовок `Location` |
-| `PUT` | `/api/users/{id}` | Полностью обновить данные пользователя | `200 OK`, обновлённый пользователь |
-| `DELETE` | `/api/users/{id}` | Удалить пользователя | `204 No Content` |
+Базовый путь: `/api/users`.
 
-Пример тела запроса для создания и обновления:
+| Метод | Путь | Результат |
+|---|---|---|
+| `GET` | `/api/users` | Список пользователей |
+| `GET` | `/api/users/{id}` | Пользователь по ID |
+| `POST` | `/api/users` | Создать пользователя (`201 Created`) |
+| `PUT` | `/api/users/{id}` | Полностью обновить пользователя |
+| `DELETE` | `/api/users/{id}` | Удалить пользователя (`204 No Content`) |
+
+Для `POST` и `PUT` передайте JSON с непустыми `name`, корректным `email` и положительным `age`:
 
 ```json
 {
@@ -48,78 +118,46 @@ REST-сервис для создания и управления пользов
 }
 ```
 
-В ответе пользователя возвращаются `id`, `name`, `email`, `age` и `createdAt`.
+Email должен быть уникальным. Типовые ответы об ошибках: `400 Bad Request` при ошибке валидации, `404 Not Found` для отсутствующего пользователя, `409 Conflict` при повторном email.
 
-### Ошибки
-
-Ответ об ошибке имеет структуру:
-
-```json
-{
-  "status": 400,
-  "message": "Validation failed",
-  "errors": [
-    {
-      "field": "email",
-      "message": "invalid email format"
-    }
-  ]
-}
-```
-
-| HTTP-статус | Условие |
-|---|---|
-| `400 Bad Request` | Ошибка проверки полей запроса; подробности передаются в `errors` |
-| `404 Not Found` | Пользователь с указанным ID не найден |
-| `409 Conflict` | Email уже используется или нарушено ограничение целостности данных |
-
-## Запуск
-
-Нужны JDK 21, Maven и доступная база PostgreSQL с таблицей `users`. SQL-схема находится в `../docker/init/01-schema.sql`; при первом запуске контейнера PostgreSQL через Docker Compose она применяется автоматически.
-
-Настройки подключения считываются из переменных окружения:
-
-| Переменная | Значение по умолчанию |
-|---|---|
-| `DB_URL` | `jdbc:postgresql://localhost:5432/user_service` |
-| `DB_USER` | `app` |
-| `DB_PASSWORD` | `app` |
-
-Запустить базу можно из корня репозитория командой `docker compose up -d`. Убедитесь, что значения `DB_USER` и `DB_PASSWORD` соответствуют настройкам пользователя базы данных. Например, для параметров из `.env.example` в PowerShell:
+Пример создания пользователя в PowerShell:
 
 ```powershell
-$env:DB_USER = "postgres"
-$env:DB_PASSWORD = "postgres"
-mvn -pl service spring-boot:run
+Invoke-RestMethod -Method Post `
+  -Uri http://localhost:8080/api/users `
+  -ContentType "application/json" `
+  -Body '{"name":"Иван","email":"ivan@example.com","age":30}'
 ```
 
-Для сборки модуля:
+### Уведомления
+
+`POST /api/notifications` на `localhost:8081` принимает `operation` (`CREATED` или `DELETED`) и корректный `email`. При успешном принятии запроса сервис отвечает `202 Accepted`.
 
 ```powershell
-mvn -pl service package
+Invoke-RestMethod -Method Post `
+  -Uri http://localhost:8081/api/notifications `
+  -ContentType "application/json" `
+  -Body '{"operation":"CREATED","email":"ivan@example.com"}'
 ```
 
-## Тесты
+Письма, отправленные напрямую через API или по событию Kafka, можно посмотреть в Mailpit: <http://localhost:8025>.
 
-Тесты разделены на модульные и интеграционные. Из корня репозитория:
+## Сборка и тесты
+
+Из корня проекта:
 
 ```powershell
-# Модульные тесты, PostgreSQL и Docker не нужны
+# Собрать оба Maven-модуля
+mvn clean package
+
+# Модульные тесты User Service
 mvn -pl service test
 
-# Полный прогон модуля, включая интеграционные тесты; необходим Docker
+# Проверка User Service, включая интеграционные тесты с PostgreSQL через Testcontainers
 mvn -pl service verify
+
+# Модульные тесты Notification Service
+mvn -pl notification-service test
 ```
 
-Модульные тесты запускаются Surefire:
-
-- `UserServiceTest` проверяет бизнес-правила и взаимодействие с репозиторием на Mockito-заглушках;
-- `UserControllerTest` проверяет HTTP-статусы, JSON, заголовок `Location` и обработку ошибок через MockMvc;
-- `UserTest` проверяет поведение сущности пользователя.
-
-Интеграционные тесты запускаются Failsafe и используют временный PostgreSQL `postgres:17-alpine` через Testcontainers:
-
-- `UserRepositoryIT` проверяет JPA-репозиторий и ограничения базы данных;
-- `UserServiceApplicationIT` проверяет работу приложения целиком — HTTP API, сервисного слоя и PostgreSQL.
-
-Для интеграционных тестов нужен запущенный Docker; отдельная локальная база не требуется. JaCoCo формирует отчёт при `verify` и проверяет минимальное покрытие ветвлений 85%. Отчёт находится в `service/target/site/jacoco/index.html`.
+Для `service verify` нужен работающий Docker, но отдельная локальная база PostgreSQL не требуется: интеграционные тесты запускают временный контейнер. `verify` также создаёт отчёт JaCoCo в `service/target/site/jacoco/index.html` и проверяет минимальное покрытие ветвлений 85%.
