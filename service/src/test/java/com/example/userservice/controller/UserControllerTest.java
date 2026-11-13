@@ -46,7 +46,7 @@ class UserControllerTest {
 
     mockMvc.perform(get("/api/users"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].name").value("Ivan"));
+        .andExpect(jsonPath("$._embedded.users[0].name").value("Ivan"));
   }
 
   @Test
@@ -66,8 +66,8 @@ class UserControllerTest {
     mockMvc
         .perform(post("/api/users")
                      .contentType(MediaType.APPLICATION_JSON)
-                     .content("{\"name\":\"Ivan\",\"email\":\"ivan@example." +
-                              "com\",\"age\":30}"))
+                     .content("{\"name\":\"Ivan\",\"email\":\"ivan@example."
+                              + "com\",\"age\":30}"))
         .andExpect(status().isCreated())
         .andExpect(header().exists("Location"))
         .andExpect(jsonPath("$.name").value("Ivan"));
@@ -81,8 +81,8 @@ class UserControllerTest {
     mockMvc
         .perform(put("/api/users/1")
                      .contentType(MediaType.APPLICATION_JSON)
-                     .content("{\"name\":\"Petr\",\"email\":\"petr@example." +
-                              "com\",\"age\":25}"))
+                     .content("{\"name\":\"Petr\",\"email\":\"petr@example."
+                              + "com\",\"age\":25}"))
         .andExpect(status().isOk());
   }
 
@@ -108,8 +108,8 @@ class UserControllerTest {
     mockMvc
         .perform(post("/api/users")
                      .contentType(MediaType.APPLICATION_JSON)
-                     .content("{\"name\":\"Ivan\",\"email\":\"ivan@example." +
-                              "com\",\"age\":30}"))
+                     .content("{\"name\":\"Ivan\",\"email\":\"ivan@example."
+                              + "com\",\"age\":30}"))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.status").value(409));
   }
@@ -119,8 +119,8 @@ class UserControllerTest {
     mockMvc
         .perform(post("/api/users")
                      .contentType(MediaType.APPLICATION_JSON)
-                     .content("{\"name\":\"\",\"email\":\"ivan@example.com\"," +
-                              "\"age\":30}"))
+                     .content("{\"name\":\"\",\"email\":\"ivan@example.com\","
+                              + "\"age\":30}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.errors[0].field").value("name"));
@@ -132,8 +132,8 @@ class UserControllerTest {
     mockMvc
         .perform(post("/api/users")
                      .contentType(MediaType.APPLICATION_JSON)
-                     .content("{\"name\":\"Ivan\",\"email\":\"not-an-email\"," +
-                              "\"age\":30}"))
+                     .content("{\"name\":\"Ivan\",\"email\":\"not-an-email\","
+                              + "\"age\":30}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.errors[0].field").value("email"));
   }
