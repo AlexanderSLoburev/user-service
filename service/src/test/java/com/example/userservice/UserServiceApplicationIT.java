@@ -76,8 +76,10 @@ class UserServiceApplicationIT {
     mockMvc.perform(get("/api/users"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(2))
-        .andExpect(jsonPath("$[0].email").value("john@example.com"))
-        .andExpect(jsonPath("$[1].email").value("alice@example.com"));
+        .andExpect(
+            jsonPath("$._embedded.users[0].email").value("john@example.com"))
+        .andExpect(
+            jsonPath("$._embedded.users[1].email").value("alice@example.com"));
   }
 
   @Test
