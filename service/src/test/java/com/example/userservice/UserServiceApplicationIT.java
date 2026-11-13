@@ -79,7 +79,11 @@ class UserServiceApplicationIT {
         .andExpect(
             jsonPath("$._embedded.users[0].email").value("john@example.com"))
         .andExpect(
-            jsonPath("$._embedded.users[1].email").value("alice@example.com"));
+            jsonPath("$._embedded.users[1].email").value("alice@example.com"))
+        .andExpect(
+            jsonPath("$._links.self.href").value("http://localhost/api/users"))
+        .andExpect(jsonPath("$._embedded.users[0]._links.self.href")
+                       .value("http://localhost/api/users/1"));
   }
 
   @Test
@@ -89,7 +93,15 @@ class UserServiceApplicationIT {
     mockMvc.perform(get("/api/users/{id}", id))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(id))
-        .andExpect(jsonPath("$.name").value("John"));
+        .andExpect(jsonPath("$.name").value("John"))
+        .andExpect(jsonPath("$._links.self.href")
+                       .value("http://localhost/api/users/" + id))
+        .andExpect(jsonPath("$._links.update.href")
+                       .value("http://localhost/api/users/" + id))
+        .andExpect(jsonPath("$._links.delete.href")
+                       .value("http://localhost/api/users/" + id))
+        .andExpect(jsonPath("$._links.users.href")
+                       .value("http://localhost/api/users"));
   }
 
   @Test
