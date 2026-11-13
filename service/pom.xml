@@ -52,7 +52,13 @@
       <artifactId>spring-boot-starter-webmvc</artifactId>
     </dependency>
 
-    <!-- ==================== test ==================== -->
+    <!-- HATEOAS -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-hateoas</artifactId>
+    </dependency>
+    
+      <!-- ==================== test ==================== -->
 
     <!-- JUnit (Jupiter), Mockito, AssertJ, JsonPath, Spring Test + MockMvc -->
     <dependency>
