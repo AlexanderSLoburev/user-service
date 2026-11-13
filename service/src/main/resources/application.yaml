@@ -19,6 +19,10 @@ spring:
       ddl-auto: validate
     open-in-view: false
 
+springdoc:
+  paths-to-match: /api/**
+  packages-to-scan: com.example.userservice.controller
+
 app:
   kafka:
     topic: user-events
