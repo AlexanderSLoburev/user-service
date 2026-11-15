@@ -96,6 +96,13 @@ HTTP API уведомлений будет доступен на <http://localho
 
 ## REST API
 
+### Swagger UI
+
+После запуска сервисов документацию и интерактивное тестирование API можно открыть в браузере:
+
+- User Service: [Swagger UI](http://localhost:8080/swagger-ui/index.html), [OpenAPI JSON](http://localhost:8080/v3/api-docs);
+- Notification Service: [Swagger UI](http://localhost:8081/swagger-ui/index.html), [OpenAPI JSON](http://localhost:8081/v3/api-docs).
+
 ### Пользователи
 
 Базовый путь: `/api/users`.
