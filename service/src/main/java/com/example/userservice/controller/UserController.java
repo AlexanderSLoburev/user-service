@@ -51,8 +51,7 @@ public class UserController {
                     + "Каждый элемент содержит HATEOAS-ссылки self/update/delete/users.")
     @ApiResponse(
             responseCode = "200",
-            description = "Список пользователей",
-            content = @Content(schema = @Schema(implementation = CollectionModel.class)))
+            description = "Список пользователей")
     public CollectionModel<EntityModel<UserResponse>> list() {
         List<EntityModel<UserResponse>> models =
                 userService.findAll().stream().map(assembler::toModel).toList();
@@ -67,8 +66,7 @@ public class UserController {
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200",
-                    description = "Пользователь найден",
-                    content = @Content(schema = @Schema(implementation = EntityModel.class))),
+                    description = "Пользователь найден"),
             @ApiResponse(
                     responseCode = "404",
                     description = "Пользователь с таким id не найден",
@@ -88,8 +86,7 @@ public class UserController {
     @ApiResponses({
             @ApiResponse(
                     responseCode = "201",
-                    description = "Пользователь создан",
-                    content = @Content(schema = @Schema(implementation = EntityModel.class))),
+                    description = "Пользователь создан"),
             @ApiResponse(
                     responseCode = "400",
                     description = "Невалидное тело запроса",
@@ -116,8 +113,7 @@ public class UserController {
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200",
-                    description = "Пользователь обновлён",
-                    content = @Content(schema = @Schema(implementation = EntityModel.class))),
+                    description = "Пользователь обновлён"),
             @ApiResponse(
                     responseCode = "400",
                     description = "Невалидное тело запроса",
