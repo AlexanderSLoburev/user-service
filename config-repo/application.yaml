@@ -1,0 +1,6 @@
+springdoc:
+  paths-to-match: /api/**
+  packages-to-scan: com.example.userservice.controller
+logging:
+  level:
+    org.hibernate.SQL: debug

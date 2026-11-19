@@ -11,7 +11,7 @@ import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
  * Framework smoke test: the notification-service context is assembled in its
  * entirety: domain (MessageComposer, NotificationService), transport
  * (@KafkaListener), configuration (all @Value placeholders from
- * application.yaml are resolved).
+ * notification-service.yaml are resolved).
  *
  * <p>No Docker, Kafka, or SMTP is required: the listener container is not
  * started (spring.kafka.listener.auto-startup=false), and JavaMailSender
