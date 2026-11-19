@@ -1,0 +1,13 @@
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+  instance:
+    hostname: localhost
+  server:
+    enable-self-preservation: false
+spring:
+  cloud:
+    service-registry:
+      auto-registration:
+        enabled: false
