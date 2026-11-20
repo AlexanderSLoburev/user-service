@@ -24,10 +24,11 @@
     <description>REST service for user management: Spring Boot + Data JPA + PostgreSQL</description>
 
     <modules>
-        <module>service</module>
+        <module>user-service</module>
         <module>notification-service</module>
         <module>config-server</module>
         <module>eureka-server</module>
+        <module>api-gateway</module>
     </modules>
 
     <properties>
@@ -46,17 +47,5 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <forkCount>0</forkCount>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
 </project>

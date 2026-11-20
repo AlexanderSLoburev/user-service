@@ -10,4 +10,4 @@ spring:
     config:
       server:
         native:
-          search-locations: file:C:/Users/Нияз/IdeaProjects/user-service/config-repo
+          search-locations: file:../config-repo
