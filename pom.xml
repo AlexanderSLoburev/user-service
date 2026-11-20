@@ -26,6 +26,8 @@
     <modules>
         <module>service</module>
         <module>notification-service</module>
+        <module>config-server</module>
+        <module>eureka-server</module>
     </modules>
 
     <properties>
@@ -44,4 +46,5 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
 </project>
