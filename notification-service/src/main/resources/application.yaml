@@ -20,6 +20,9 @@ spring:
       properties:
         spring.json.add.type.headers: false
 
+server:
+  port: 8086
+
 app:
   kafka:
     topic: user-events
@@ -28,3 +31,10 @@ app:
     from: noreply@localhost
     subject-created: "Ваш аккаунт создан"
     subject-deleted: "Ваш аккаунт удалён"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true

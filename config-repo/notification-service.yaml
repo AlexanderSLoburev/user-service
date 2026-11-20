@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: 8086
 
 spring:
   kafka:
@@ -27,3 +27,9 @@ app:
     from: ${NOTIFICATION_FROM:noreply@localhost}
     subject-created: "Ваш аккаунт создан"
     subject-deleted: "Ваш аккаунт удалён"
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true

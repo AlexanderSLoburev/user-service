@@ -12,7 +12,7 @@ User Service ───────► PostgreSQL :5432
   │ CREATED / DELETED
   ▼
 Kafka (user-events) ───────► Notification Service ───────► Mailpit :1025
-                                    │ HTTP :8081               └─ UI :8025
+                                    │ HTTP :8086               └─ UI :8025
 ```
 
 - **`service` — User Service.** Spring MVC принимает запросы на `/api/users`; DTO проверяются Bean Validation, бизнес-логика находится в `UserService`, а `UserRepository` на Spring Data JPA работает с PostgreSQL. `GlobalExceptionHandler` формирует JSON-ответы об ошибках.
@@ -25,7 +25,7 @@ Kafka (user-events) ───────► Notification Service ────�
 
 ```text
 .
-├── service/                 # REST API пользователей
+├── user-service/            # REST API пользователей
 ├── notification-service/    # обработка и отправка уведомлений
 ├── docker/
 │   └── init/01-schema.sql   # начальная схема PostgreSQL
@@ -74,10 +74,10 @@ docker compose up -d
 $env:DB_URL = "jdbc:postgresql://localhost:5432/user_service"
 $env:DB_USER = "postgres"
 $env:DB_PASSWORD = "postgres"
-mvn -pl service spring-boot:run
+mvn -pl user-service spring-boot:run
 ```
 
-Укажите `DB_USER` и `DB_PASSWORD`, соответствующие значениям `POSTGRES_USER` и `POSTGRES_PASSWORD` в `.env`. API будет доступен на <http://localhost:8080>.
+Укажите `DB_USER` и `DB_PASSWORD`, соответствующие значениям `POSTGRES_USER` и `POSTGRES_PASSWORD` в `.env`. API будет доступен на <http://localhost:8085>.
 
 ### 3. Запустить Notification Service
 
@@ -90,7 +90,17 @@ $env:SMTP_PORT = "1025"
 mvn -pl notification-service spring-boot:run
 ```
 
-HTTP API уведомлений будет доступен на <http://localhost:8081>. Настройки подключения также можно переопределять переменными окружения: `KAFKA_BOOTSTRAP_SERVERS`, `SMTP_HOST`, `SMTP_PORT`, `NOTIFICATION_SITE_NAME` и `NOTIFICATION_FROM`.
+HTTP API уведомлений будет доступен на <http://localhost:8086>. Настройки подключения также можно переопределять переменными окружения: `KAFKA_BOOTSTRAP_SERVERS`, `SMTP_HOST`, `SMTP_PORT`, `NOTIFICATION_SITE_NAME` и `NOTIFICATION_FROM`.
+
+### 4. Запустить API Gateway
+
+В отдельном окне PowerShell из корня проекта:
+
+```powershell
+mvn -pl api-gateway spring-boot:run
+```
+
+Gateway будет доступен на <http://localhost:9000>. Маршруты проксируют `/api/users/**` и `/api/notifications/**` через Eureka.
 
 Чтобы остановить инфраструктуру, выполните `docker compose down`. Данные PostgreSQL сохраняются в Docker-томе; удаляйте том отдельно, только если хотите сбросить локальную базу.
 
@@ -100,8 +110,8 @@ HTTP API уведомлений будет доступен на <http://localho
 
 После запуска сервисов документацию и интерактивное тестирование API можно открыть в браузере:
 
-- User Service: [Swagger UI](http://localhost:8080/swagger-ui/index.html), [OpenAPI JSON](http://localhost:8080/v3/api-docs);
-- Notification Service: [Swagger UI](http://localhost:8081/swagger-ui/index.html), [OpenAPI JSON](http://localhost:8081/v3/api-docs).
+- User Service: [Swagger UI](http://localhost:8085/swagger-ui/index.html), [OpenAPI JSON](http://localhost:8085/v3/api-docs);
+- Notification Service: [Swagger UI](http://localhost:8086/swagger-ui/index.html), [OpenAPI JSON](http://localhost:8086/v3/api-docs).
 
 ### Пользователи
 
@@ -138,11 +148,11 @@ Invoke-RestMethod -Method Post `
 
 ### Уведомления
 
-`POST /api/notifications` на `localhost:8081` принимает `operation` (`CREATED` или `DELETED`) и корректный `email`. При успешном принятии запроса сервис отвечает `202 Accepted`.
+`POST /api/notifications` на `localhost:8086` принимает `operation` (`CREATED` или `DELETED`) и корректный `email`. При успешном принятии запроса сервис отвечает `202 Accepted`.
 
 ```powershell
 Invoke-RestMethod -Method Post `
-  -Uri http://localhost:8081/api/notifications `
+  -Uri http://localhost:8086/api/notifications `
   -ContentType "application/json" `
   -Body '{"operation":"CREATED","email":"ivan@example.com"}'
 ```
@@ -158,13 +168,13 @@ Invoke-RestMethod -Method Post `
 mvn clean package
 
 # Модульные тесты User Service
-mvn -pl service test
+mvn -pl user-service test
 
 # Проверка User Service, включая интеграционные тесты с PostgreSQL через Testcontainers
-mvn -pl service verify
+mvn -pl user-service verify
 
 # Модульные тесты Notification Service
 mvn -pl notification-service test
 ```
 
-Для `service verify` нужен работающий Docker, но отдельная локальная база PostgreSQL не требуется: интеграционные тесты запускают временный контейнер. `verify` также создаёт отчёт JaCoCo в `service/target/site/jacoco/index.html` и проверяет минимальное покрытие ветвлений 85%.
+Для `user-service verify` нужен работающий Docker, но отдельная локальная база PostgreSQL не требуется: интеграционные тесты запускают временный контейнер. `verify` также создаёт отчёт JaCoCo в `user-service/target/site/jacoco/index.html` и проверяет минимальное покрытие ветвлений 85%.
