@@ -11,3 +11,6 @@ spring:
     service-registry:
       auto-registration:
         enabled: false
+
+server:
+  port: 8761
