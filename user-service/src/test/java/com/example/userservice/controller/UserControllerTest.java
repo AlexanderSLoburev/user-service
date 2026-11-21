@@ -26,14 +26,17 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import com.example.userservice.client.NotificationClient;
 
 @WebMvcTest(UserController.class)
 @Import(UserModelAssembler.class)
 class UserControllerTest {
 
-  @Autowired private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-  @MockitoBean private UserService userService;
+    @MockitoBean private UserService userService;
+
+    @MockitoBean private NotificationClient notificationClient;
 
   private UserResponse response() {
     return new UserResponse(1L, "Ivan", "ivan@example.com", 30,
@@ -137,4 +140,37 @@ class UserControllerTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.errors[0].field").value("email"));
   }
+    @Test
+    void when_sendNotification_then_returns202() throws Exception {
+        when(userService.findById(1L)).thenReturn(response());
+        when(notificationClient.sendNotification("CREATED", "ivan@example.com"))
+                .thenReturn(true);
+
+        mockMvc.perform(post("/api/users/1/notifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"operation\":\"CREATED\"}"))
+                .andExpect(status().isAccepted());
+    }
+
+    @Test
+    void when_sendNotification_fallback_then_returns503() throws Exception {
+        when(userService.findById(1L)).thenReturn(response());
+        when(notificationClient.sendNotification("CREATED", "ivan@example.com"))
+                .thenReturn(false);
+
+        mockMvc.perform(post("/api/users/1/notifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"operation\":\"CREATED\"}"))
+                .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    void when_sendNotification_userNotFound_then_returns404() throws Exception {
+        when(userService.findById(99L)).thenThrow(new UserNotFoundException(99L));
+
+        mockMvc.perform(post("/api/users/99/notifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"operation\":\"CREATED\"}"))
+                .andExpect(status().isNotFound());
+    }
 }
