@@ -29,7 +29,8 @@ import org.springframework.test.web.servlet.MockMvc;
  */
 @SpringBootTest(
         properties = {"spring.mail.port=3025", // ServerSetupTest.SMTP port
-                "spring.kafka.listener.auto-startup=false"})
+                "spring.kafka.listener.auto-startup=false",
+                "eureka.client.enabled=false"})
 @AutoConfigureMockMvc
 class NotificationApiIT {
 

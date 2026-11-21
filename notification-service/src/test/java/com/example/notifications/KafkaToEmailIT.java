@@ -37,7 +37,8 @@ import org.testcontainers.kafka.KafkaContainer;
 @Testcontainers
 @SpringBootTest(properties = {
         "spring.mail.port=3025",
-        "spring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JacksonJsonSerializer"
+        "spring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JacksonJsonSerializer",
+        "eureka.client.enabled=false"
 })
 class KafkaToEmailIT {
 

@@ -19,7 +19,10 @@ import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
  * broker -> email) are tested by NotificationApiIT and KafkaToEmailIT from the
  * task 5.7.
  */
-@SpringBootTest(properties = "spring.kafka.listener.auto-startup=false")
+@SpringBootTest(properties = {
+        "spring.kafka.listener.auto-startup=false",
+        "eureka.client.enabled=false"
+})
 class NotificationServiceApplicationIT {
 
   @Autowired private KafkaListenerEndpointRegistry listenerRegistry;
