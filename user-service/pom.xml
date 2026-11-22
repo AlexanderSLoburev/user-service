@@ -24,7 +24,7 @@
         <!-- Web layer: embedded Tomcat, Spring MVC, Jackson (JSON) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
         <!-- Spring Data JPA -->
@@ -44,12 +44,6 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
-        </dependency>
-
-        <!-- Web MVC + Tomcat + Jackson 3 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
         <!-- HATEOAS -->
@@ -167,7 +161,7 @@
                             <goal>prepare-agent-integration</goal>
                         </goals>
                         <configuration>
-                            <!--both agents write to the same file: check will see coverage unit + IT -->
+                            <!-- both agents write to the same file: check will see coverage unit + IT -->
                             <destFile>${project.build.directory}/jacoco.exec</destFile>
                         </configuration>
                     </execution>
@@ -185,6 +179,14 @@
                             <goal>check</goal>
                         </goals>
                         <configuration>
+                            <!-- РСЃРєР»СЋС‡Р°РµРј РёР· СЂР°СЃС‡С‘С‚Р° РїРѕРєСЂС‹С‚РёСЏ РєР»Р°СЃСЃС‹, РєРѕС‚РѕСЂС‹Рµ РЅРµ СЏРІР»СЏСЋС‚СЃСЏ Р±РёР·РЅРµСЃ-Р»РѕРіРёРєРѕР№ -->
+                            <excludes>
+                                <exclude>**/config/**</exclude>
+                                <exclude>**/dto/**</exclude>
+                                <exclude>**/entity/**</exclude>
+                                <exclude>**/exception/**</exclude>
+                                <exclude>**/*Application.class</exclude>
+                            </excludes>
                             <rules>
                                 <rule>
                                     <element>BUNDLE</element>
@@ -219,6 +221,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
                     <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+                    <forkCount>0</forkCount>
                 </configuration>
                 <executions>
                     <execution>
