@@ -7,15 +7,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.example.userservice.dto.NotificationRequest;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
-import io.github.resilience4j.timelimiter.TimeLimiterConfig;
-import java.time.Duration;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
+import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4jBulkheadProvider;
+import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JCircuitBreakerFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JCircuitBreakerFactory;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.web.client.RestClient;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -48,21 +47,18 @@ class NotificationClientTest {
         CircuitBreakerRegistry registry = CircuitBreakerRegistry.ofDefaults();
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-        circuitBreakerFactory = new Resilience4JCircuitBreakerFactory(
-                registry, executorService);
-        circuitBreakerFactory.configure(builder -> builder
-                        .circuitBreakerConfig(CircuitBreakerConfig.custom()
-                                .slidingWindowSize(4)
-                                .minimumNumberOfCalls(2)
-                                .failureRateThreshold(50)
-                                .waitDurationInOpenState(Duration.ofMillis(100))
-                                .build())
-                        .timeLimiterConfig(TimeLimiterConfig.custom()
-                                .timeoutDuration(Duration.ofSeconds(1))
-                                .build()),
-                "notificationService");
+        CircuitBreakerRegistry circuitBreakerRegistry = CircuitBreakerRegistry.ofDefaults();
+        TimeLimiterRegistry timeLimiterRegistry = TimeLimiterRegistry.ofDefaults();
+        Resilience4jBulkheadProvider bulkheadProvider = new Resilience4jBulkheadProvider(
+                new Resilience4jBulkheadConfigurationProperties(),
+                CircuitBreakerRegistry.ofDefaults()
+        );
 
-        client = new NotificationClient(builder, circuitBreakerFactory);
+        circuitBreakerFactory = new Resilience4JCircuitBreakerFactory(
+                circuitBreakerRegistry,
+                timeLimiterRegistry,
+                bulkheadProvider
+        );
     }
 
     @Test
