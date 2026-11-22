@@ -15,6 +15,8 @@ import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.RestClient;
+import com.example.userservice.event.UserEvent;
+import org.springframework.kafka.core.KafkaTemplate;
 
 @SpringBootTest (properties = {
         "spring.autoconfigure.exclude=" +
@@ -32,6 +34,9 @@ class NotificationClientTest {
 
     @MockitoBean
     private UserRepository userRepository;
+
+    @MockitoBean
+    private KafkaTemplate<String, UserEvent> kafkaTemplate;
 
     private RestClient.Builder builder;
     private RestClient restClient;
