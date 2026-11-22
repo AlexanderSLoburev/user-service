@@ -10,10 +10,14 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
 import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
+
 import java.time.Duration;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JCircuitBreakerFactory;
+import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JConfigurationProperties;
+import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4jBulkheadProvider;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.web.client.RestClient;
 
@@ -46,10 +50,12 @@ class NotificationClientTest {
         CircuitBreakerRegistry circuitBreakerRegistry = CircuitBreakerRegistry.ofDefaults();
         TimeLimiterRegistry timeLimiterRegistry = TimeLimiterRegistry.ofDefaults();
 
+        Resilience4jBulkheadProvider bulkheadProvider = new Resilience4jBulkheadProvider(new Resilience4JConfigurationProperties(), circuitBreakerRegistry);
+
         circuitBreakerFactory = new Resilience4JCircuitBreakerFactory(
                 circuitBreakerRegistry,
                 timeLimiterRegistry,
-                null
+                bulkheadProvider
         );
 
         circuitBreakerFactory.configure(builder -> builder
@@ -75,6 +81,8 @@ class NotificationClientTest {
     @Test
     void when_send_fails_then_fallback_returns_false() {
         when(responseSpec.toBodilessEntity()).thenThrow(new RuntimeException("boom"));
+
+
         assertThat(client.sendNotification("CREATED", "john@example.com")).isFalse();
     }
 }
