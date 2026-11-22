@@ -6,18 +6,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.example.userservice.dto.NotificationRequest;
-import io.github.resilience4j.bulkhead.BulkheadRegistry;
-import io.github.resilience4j.bulkhead.ThreadPoolBulkheadRegistry;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import io.github.resilience4j.timelimiter.TimeLimiterConfig;
-import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
-import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JCircuitBreakerFactory;
-import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JConfigurationProperties;
-import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4jBulkheadProvider;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.web.client.RestClient;
 
@@ -47,32 +38,7 @@ class NotificationClientTest {
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(null);
 
-        CircuitBreakerRegistry circuitBreakerRegistry = CircuitBreakerRegistry.ofDefaults();
-        TimeLimiterRegistry timeLimiterRegistry = TimeLimiterRegistry.ofDefaults();
-
-        Resilience4jBulkheadProvider bulkheadProvider = new Resilience4jBulkheadProvider(
-                ThreadPoolBulkheadRegistry.ofDefaults(),
-                BulkheadRegistry.ofDefaults(),
-                new Resilience4JConfigurationProperties()
-        );
-
-        circuitBreakerFactory = new Resilience4JCircuitBreakerFactory(
-                circuitBreakerRegistry,
-                timeLimiterRegistry,
-                bulkheadProvider
-        );
-
-        circuitBreakerFactory.configure(builder -> builder
-                        .circuitBreakerConfig(CircuitBreakerConfig.custom()
-                                .slidingWindowSize(4)
-                                .minimumNumberOfCalls(2)
-                                .failureRateThreshold(50)
-                                .waitDurationInOpenState(Duration.ofMillis(100))
-                                .build())
-                        .timeLimiterConfig(TimeLimiterConfig.custom()
-                                .timeoutDuration(Duration.ofSeconds(1))
-                                .build()),
-                "notificationService");
+        circuitBreakerFactory = new Resilience4JCircuitBreakerFactory();
 
         client = new NotificationClient(builder, circuitBreakerFactory);
     }
