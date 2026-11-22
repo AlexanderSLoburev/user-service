@@ -8,18 +8,25 @@ import static org.mockito.Mockito.when;
 import com.example.userservice.dto.NotificationRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JCircuitBreakerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestClient;
 
+@SpringBootTest
+@Import(CircuitBreakerTestConfig.class)
 class NotificationClientTest {
+
+    @Autowired
+    private CircuitBreakerFactory<?, ?> circuitBreakerFactory;
 
     private RestClient.Builder builder;
     private RestClient restClient;
     private RestClient.RequestBodyUriSpec requestBodyUriSpec;
     private RestClient.RequestBodySpec requestBodySpec;
     private RestClient.ResponseSpec responseSpec;
-    private CircuitBreakerFactory<?, ?> circuitBreakerFactory;
     private NotificationClient client;
 
     @BeforeEach
@@ -38,8 +45,6 @@ class NotificationClientTest {
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(null);
 
-        circuitBreakerFactory = new Resilience4JCircuitBreakerFactory();
-
         client = new NotificationClient(builder, circuitBreakerFactory);
     }
 
@@ -50,8 +55,6 @@ class NotificationClientTest {
 
     @Test
     void when_send_fails_then_fallback_returns_false() {
-
-
         when(responseSpec.toBodilessEntity()).thenThrow(new RuntimeException("boom"));
         assertThat(client.sendNotification("CREATED", "john@example.com")).isFalse();
     }
