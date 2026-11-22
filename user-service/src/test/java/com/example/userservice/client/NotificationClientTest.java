@@ -6,13 +6,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.example.userservice.dto.NotificationRequest;
+import io.github.resilience4j.bulkhead.BulkheadRegistry;
+import io.github.resilience4j.bulkhead.ThreadPoolBulkheadRegistry;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
 import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
-
 import java.time.Duration;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JCircuitBreakerFactory;
@@ -50,7 +50,11 @@ class NotificationClientTest {
         CircuitBreakerRegistry circuitBreakerRegistry = CircuitBreakerRegistry.ofDefaults();
         TimeLimiterRegistry timeLimiterRegistry = TimeLimiterRegistry.ofDefaults();
 
-        Resilience4jBulkheadProvider bulkheadProvider = new Resilience4jBulkheadProvider(new Resilience4JConfigurationProperties(), circuitBreakerRegistry);
+        Resilience4jBulkheadProvider bulkheadProvider = new Resilience4jBulkheadProvider(
+                ThreadPoolBulkheadRegistry.ofDefaults(),
+                BulkheadRegistry.ofDefaults(),
+                new Resilience4JConfigurationProperties()
+        );
 
         circuitBreakerFactory = new Resilience4JCircuitBreakerFactory(
                 circuitBreakerRegistry,
@@ -80,9 +84,9 @@ class NotificationClientTest {
 
     @Test
     void when_send_fails_then_fallback_returns_false() {
+
+
         when(responseSpec.toBodilessEntity()).thenThrow(new RuntimeException("boom"));
-
-
         assertThat(client.sendNotification("CREATED", "john@example.com")).isFalse();
     }
 }
