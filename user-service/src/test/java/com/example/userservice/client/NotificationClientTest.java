@@ -12,10 +12,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestClient;
 
-@SpringBootTest
+@SpringBootTest (properties = {
+        "spring.autoconfigure.exclude=" +
+        "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration," +
+        "org.springframework.boot.jpa.autoconfigure.HibernateJpaAutoConfiguration," +
+        "org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration",
+        "eureka.client.enabled=false"
+})
 @Import(CircuitBreakerTestConfig.class)
 class NotificationClientTest {
 
