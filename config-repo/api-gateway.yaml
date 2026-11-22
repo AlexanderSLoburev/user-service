@@ -1,0 +1,31 @@
+server:
+  port: 9000
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: user-service-route
+              uri: lb://user-service
+              predicates:
+                - Path=/api/users/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    id: user-service-cb
+                    fallbackUri: forward:/fallback/users
+            - id: user-service-docs-route
+              uri: lb://user-service
+              predicates:
+                - Path=/v3/api-docs/**,/swagger-ui/**
+            - id: notification-service-route
+              uri: lb://notification-service
+              predicates:
+                - Path=/api/notifications/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka

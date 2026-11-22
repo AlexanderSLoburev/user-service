@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 /**
  * <p>The text is hard-coded (this is the task contract), and anything the team
  * might want to change without rebuilding (the site name, email subject lines)
- * is read from application.yaml.
+ * is read from notification-service.yaml.
  */
 @Component
 public class MessageComposer {

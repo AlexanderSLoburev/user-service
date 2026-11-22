@@ -11,7 +11,7 @@ import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
  * Framework smoke test: the notification-service context is assembled in its
  * entirety: domain (MessageComposer, NotificationService), transport
  * (@KafkaListener), configuration (all @Value placeholders from
- * application.yaml are resolved).
+ * notification-service.yaml are resolved).
  *
  * <p>No Docker, Kafka, or SMTP is required: the listener container is not
  * started (spring.kafka.listener.auto-startup=false), and JavaMailSender
@@ -19,7 +19,15 @@ import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
  * broker -> email) are tested by NotificationApiIT and KafkaToEmailIT from the
  * task 5.7.
  */
-@SpringBootTest(properties = "spring.kafka.listener.auto-startup=false")
+@SpringBootTest(properties = {
+        "spring.autoconfigure.exclude=" +
+                "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration," +
+                "org.springframework.boot.jdbc.autoconfigure.DataSourceInitializationAutoConfiguration," +
+                "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration," +
+                "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration",
+        "spring.kafka.listener.auto-startup=false",
+        "eureka.client.enabled=false"
+})
 class NotificationServiceApplicationIT {
 
   @Autowired private KafkaListenerEndpointRegistry listenerRegistry;

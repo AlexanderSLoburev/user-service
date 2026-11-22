@@ -1,7 +1,11 @@
 spring:
   application:
     name: notification-service
-
+  config:
+    import: optional:configserver:http://localhost:8888
+  mail:
+    host: localhost
+    port: 1025
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
@@ -16,21 +20,21 @@ spring:
       properties:
         spring.json.add.type.headers: false
 
-  mail:
-    host: ${SMTP_HOST:localhost}
-    port: ${SMTP_PORT:1025}
-
 server:
-  port: 8081
-
-springdoc:
-  paths-to-match: /api/**
+  port: 8086
 
 app:
   kafka:
     topic: user-events
   notification:
-    site-name: ${NOTIFICATION_SITE_NAME:site.com}
-    from: ${NOTIFICATION_FROM:noreply@localhost}
+    site-name: site.com
+    from: noreply@localhost
     subject-created: "Ваш аккаунт создан"
     subject-deleted: "Ваш аккаунт удалён"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true

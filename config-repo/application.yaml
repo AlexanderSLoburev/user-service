@@ -1,0 +1,12 @@
+springdoc:
+  paths-to-match: /api/**
+  packages-to-scan: com.example.userservice.controller
+logging:
+  level:
+    org.hibernate.SQL: debug
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true

@@ -36,8 +36,14 @@ import org.testcontainers.kafka.KafkaContainer;
  */
 @Testcontainers
 @SpringBootTest(properties = {
+        "spring.autoconfigure.exclude=" +
+                "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration," +
+                "org.springframework.boot.jdbc.autoconfigure.DataSourceInitializationAutoConfiguration," +
+                "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration," +
+                "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration",
         "spring.mail.port=3025",
-        "spring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JacksonJsonSerializer"
+        "spring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JacksonJsonSerializer",
+        "eureka.client.enabled=false"
 })
 class KafkaToEmailIT {
 
