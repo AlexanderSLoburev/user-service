@@ -20,6 +20,11 @@ import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
  * task 5.7.
  */
 @SpringBootTest(properties = {
+        "spring.autoconfigure.exclude=" +
+                "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration," +
+                "org.springframework.boot.jdbc.autoconfigure.DataSourceInitializationAutoConfiguration," +
+                "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration," +
+                "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration",
         "spring.kafka.listener.auto-startup=false",
         "eureka.client.enabled=false"
 })
