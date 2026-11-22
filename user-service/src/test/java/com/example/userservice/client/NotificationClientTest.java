@@ -16,8 +16,8 @@ import org.springframework.web.client.RestClient;
 
 @SpringBootTest (properties = {
         "spring.autoconfigure.exclude=" +
-        "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration," +
-        "org.springframework.boot.jpa.autoconfigure.HibernateJpaAutoConfiguration," +
+                "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration," +
+                "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration," +
         "org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration",
         "eureka.client.enabled=false"
 })
