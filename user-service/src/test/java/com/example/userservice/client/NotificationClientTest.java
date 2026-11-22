@@ -6,27 +6,32 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.example.userservice.dto.NotificationRequest;
+import com.example.userservice.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.RestClient;
 
 @SpringBootTest (properties = {
         "spring.autoconfigure.exclude=" +
-                "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration," +
-                "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration," +
-                "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration," +
+        "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration," +
+        "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration," +
+        "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration," +
         "org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration",
         "eureka.client.enabled=false"
-})
+        })
 @Import(CircuitBreakerTestConfig.class)
 class NotificationClientTest {
 
     @Autowired
     private CircuitBreakerFactory<?, ?> circuitBreakerFactory;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     private RestClient.Builder builder;
     private RestClient restClient;
