@@ -7,7 +7,7 @@ import org.springframework.cloud.netflix.eureka.server.EurekaServerAutoConfigura
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = "eureka.client.enabled=false")
+@SpringBootTest
 class EurekaServerApplicationTest {
 
     @Autowired(required = false)
