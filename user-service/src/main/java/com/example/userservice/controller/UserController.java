@@ -3,7 +3,9 @@ package com.example.userservice.controller;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
+import com.example.userservice.client.NotificationClient;
 import com.example.userservice.dto.UserCreateRequest;
+import com.example.userservice.dto.UserNotificationRequest;
 import com.example.userservice.dto.UserResponse;
 import com.example.userservice.dto.UserUpdateRequest;
 import com.example.userservice.service.UserService;
@@ -20,6 +22,7 @@ import java.util.List;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.IanaLinkRelations;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,10 +41,14 @@ public class UserController {
 
     private final UserService userService;
     private final UserModelAssembler assembler;
+    private final NotificationClient notificationClient;
 
-    public UserController(UserService userService, UserModelAssembler assembler) {
+    public UserController(UserService userService,
+                          UserModelAssembler assembler,
+                          NotificationClient notificationClient) {
         this.userService = userService;
         this.assembler = assembler;
+        this.notificationClient = notificationClient;
     }
 
     @GetMapping
@@ -150,5 +157,33 @@ public class UserController {
             @PathVariable Long id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/notifications")
+    @Operation(
+            summary = "Отправить уведомление пользователю",
+            description = "Синхронный вызов notification-service с Circuit Breaker. "
+                    + "При недоступности notification-service возвращает 503.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "202", description = "Запрос принят"),
+            @ApiResponse(responseCode = "404", description = "Пользователь не найден",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "503", description = "notification-service недоступен (fallback)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<Void> sendNotification(
+            @Parameter(description = "Идентификатор пользователя", example = "1")
+            @PathVariable Long id,
+            @RequestBody @Valid UserNotificationRequest request) {
+
+        UserResponse user = userService.findById(id);
+
+        boolean sent = notificationClient.sendNotification(
+                request.operation(), user.email());
+
+        if (sent) {
+            return ResponseEntity.accepted().build();
+        }
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
     }
 }
