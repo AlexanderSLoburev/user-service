@@ -66,6 +66,18 @@ services:
     networks:
       - microservices
 
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+    volumes:
+      - ./config-repo:/config-repo:ro
+    networks:
+      - microservices
+
 networks:
   microservices:
     name: microservices
